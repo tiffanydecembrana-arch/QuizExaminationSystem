@@ -1,0 +1,276 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #EAF7EF;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 25px 20px;
+            border-radius: 12px;
+            max-width: 800px;
+            margin: 20px auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        header h1 {
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        #progress {
+            color: #0B5D35;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            background: white;
+            padding: 35px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            min-height: 220px;
+            border-top: 5px solid #16834A;
+        }
+
+        .card h2 {
+            color: #0B5D35;
+            line-height: 1.5;
+        }
+
+        button {
+            background: #16834A;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 15px 5px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        #answer {
+            display: none;
+            color: #0B5D35;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #DCEFE3;
+        }
+
+        #answer h3 {
+            margin-bottom: 10px;
+        }
+
+        #answerText {
+            line-height: 1.6;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 20px;
+            color: #16834A;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .back:hover {
+            color: #0B5D35;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .card {
+                padding: 25px 18px;
+            }
+
+            button {
+                padding: 11px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Flashcards</h1>
+    <p>Review and improve your Information Technology knowledge.</p>
+</header>
+
+<div class="container">
+
+    <p id="progress">Question 1 of 15</p>
+
+    <div class="card">
+        <h2 id="question">Loading question...</h2>
+
+        <div id="answer">
+            <h3>Answer:</h3>
+            <p id="answerText"></p>
+        </div>
+    </div>
+
+    <button onclick="showAnswer()">Show Answer</button>
+    <button onclick="nextCard()">Next Card</button>
+
+    <br>
+
+    <a href="dashboard.html" class="back">
+        Back to Dashboard
+    </a>
+
+</div>
+
+<script>
+
+const questions = [
+    {
+        question: "What does CPU stand for?",
+        answer: "Central Processing Unit."
+    },
+    {
+        question: "What does RAM stand for?",
+        answer: "Random Access Memory."
+    },
+    {
+        question: "What is the function of an operating system?",
+        answer: "It manages computer hardware and software resources."
+    },
+    {
+        question: "What does HTML stand for?",
+        answer: "Hypertext Markup Language."
+    },
+    {
+        question: "What is a database?",
+        answer: "An organized collection of data."
+    },
+    {
+        question: "What does LAN stand for?",
+        answer: "Local Area Network."
+    },
+    {
+        question: "What is malware?",
+        answer: "Malicious software designed to harm or disrupt computer systems."
+    },
+    {
+        question: "What is the purpose of a firewall?",
+        answer: "It helps protect a network from unauthorized access."
+    },
+    {
+        question: "What does URL stand for?",
+        answer: "Uniform Resource Locator."
+    },
+    {
+        question: "What is debugging?",
+        answer: "Finding and fixing errors in a computer program."
+    },
+    {
+        question: "What does SQL stand for?",
+        answer: "Structured Query Language."
+    },
+    {
+        question: "What is cloud storage?",
+        answer: "Storing data on remote servers accessed through the internet."
+    },
+    {
+        question: "What does USB stand for?",
+        answer: "Universal Serial Bus."
+    },
+    {
+        question: "What is the purpose of antivirus software?",
+        answer: "To detect, prevent, and remove malicious software."
+    },
+    {
+        question: "What is Computer Systems Servicing?",
+        answer: "Installing, maintaining, and troubleshooting computer systems."
+    }
+];
+
+let currentIndex = 0;
+
+// Randomize flashcards
+function shuffleQuestions() {
+    for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [questions[i], questions[j]] =
+        [questions[j], questions[i]];
+    }
+}
+
+shuffleQuestions();
+
+function displayCard() {
+
+    document.getElementById("question").textContent =
+        questions[currentIndex].question;
+
+    document.getElementById("answerText").textContent =
+        questions[currentIndex].answer;
+
+    document.getElementById("answer").style.display = "none";
+
+    document.getElementById("progress").textContent =
+        "Question " + (currentIndex + 1) +
+        " of " + questions.length;
+}
+
+function showAnswer() {
+    document.getElementById("answer").style.display = "block";
+}
+
+function nextCard() {
+
+    currentIndex++;
+
+    if (currentIndex >= questions.length) {
+        currentIndex = 0;
+        shuffleQuestions();
+    }
+
+    displayCard();
+}
+
+displayCard();
+
+</script>
+
+</body>
+</html>

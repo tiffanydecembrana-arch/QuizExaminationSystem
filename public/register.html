@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #EAF7EF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .register-container {
+            background: white;
+            width: 400px;
+            max-width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px #00000015;
+            border-top: 5px solid #16834A;
+        }
+
+        h2 {
+            color: #0B5D35;
+            text-align: center;
+        }
+
+        p {
+            text-align: center;
+            color: #64748b;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #16834A;
+            box-shadow: 0 0 0 2px #16834A20;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: #16834A;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        a {
+            color: #16834A;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            color: #0B5D35;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="register-container">
+
+        <h2>Student Registration</h2>
+        <p>Create your student account</p>
+
+        <form id="registerForm">
+
+            <input type="text" name="full_name"
+                placeholder="Full Name" required>
+
+            <input type="text" name="student_id"
+                placeholder="Student ID" required>
+
+            <input type="email" name="email"
+                placeholder="Email Address" required>
+
+            <input type="password" name="password"
+                placeholder="Password" minlength="8" required>
+
+            <input type="password" name="confirm_password"
+                placeholder="Confirm Password" minlength="8" required>
+
+            <button type="submit">Create Account</button>
+
+            <p id="message"></p>
+
+        </form>
+
+        <p>Already have an account? <a href="login.html">Login</a></p>
+
+        <p><a href="index.html">Back to Home</a></p>
+
+    </div>
+
+<script>
+    const form = document.getElementById('registerForm');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const studentData = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(studentData)
+            });
+
+            const result = await response.json();
+
+            message.textContent = result.message;
+            message.style.color = response.ok ? 'green' : 'red';
+
+            if (response.ok) {
+                form.reset();
+            }
+
+        } catch (error) {
+            message.textContent = 'Unable to connect to server.';
+            message.style.color = 'red';
+        }
+    });
+</script>
+
+</body>
+</html>

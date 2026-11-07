@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Quiz</title>
+    <link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+
+    <div class="quiz-header">
+        <button onclick="window.location.href='dashboard.html'">
+            Back to Dashboard
+        </button>
+
+        <h1>ONLINE QUIZ</h1>
+        <p>Test your knowledge in Information Technology.</p>
+    </div>
+
+    <div class="quiz-container">
+
+        <div class="quiz-progress">
+            <span id="questionNumber">Question 1 of 15</span>
+            <span id="progressPercent">7%</span>
+        </div>
+
+        <div class="progress-bar">
+            <div id="progressFill"></div>
+        </div>
+<div id="quizQuestions"></div>
+
+        <div class="quiz-navigation">
+            <button id="previousQuestion">Previous</button>
+            <button id="nextQuestion">Next</button>
+        </div>
+
+        <button id="submitQuiz" style="display:none;">
+            Submit Quiz
+        </button>
+
+        <div id="quizResult"></div>
+
+    </div>
+
+    <script src="quiz.js"></script>
+
+</body>
+</html>

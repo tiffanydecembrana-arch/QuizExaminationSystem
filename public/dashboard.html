@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #EAF7EF;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        header p {
+            margin-bottom: 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .welcome {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 5px solid #16834A;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        .welcome h2 {
+            color: #0B5D35;
+            margin-top: 0;
+        }
+
+        .welcome p {
+            color: #64748b;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px #00000010;
+            border-top: 4px solid #16834A;
+            transition: 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 7px 18px #00000018;
+        }
+
+        .card h3 {
+            color: #0B5D35;
+        }
+
+        .card p {
+            color: #64748b;
+            min-height: 40px;
+        }
+
+        button {
+            background: #16834A;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        .logout-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .logout-button {
+            background: #64748b;
+        }
+
+        .logout-button:hover {
+            background: #475569;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 15px auto;
+                padding: 15px;
+            }
+
+            header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Quiz Examination System</h1>
+    <p>Student Dashboard</p>
+</header>
+
+<div class="container">
+
+    <div class="welcome">
+        <h2>Welcome, <span id="studentName">Student</span>!</h2>
+        <p>Welcome to your online quiz and examination system.</p>
+    </div>
+
+    <div class="features">
+
+        <div class="card">
+            <h3>Online Quiz</h3>
+            <p>Practice your IT knowledge through online quizzes.</p>
+            <button onclick="window.location.href='quiz.html'">
+                Start Online Quiz
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>Flashcards</h3>
+            <p>Review questions using flashcards.</p>
+            <button onclick="window.location.href='flashcards.html'">
+                Start Flashcards
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>Online Examination</h3>
+            <p>Take your online examination.</p>
+            <button onclick="window.location.href='exam.html'">
+                Start Exam
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>My Results</h3>
+            <p>View your quiz and examination scores.</p>
+            <button onclick="window.location.href='results.html'">
+                View Results
+            </button>
+        </div>
+
+    </div>
+
+    <div class="logout-container">
+        <button class="logout-button" onclick="logout()">
+            Logout
+        </button>
+    </div>
+
+</div>
+
+<script>
+    async function checkStudent() {
+        try {
+            const response = await fetch('/api/student');
+
+            if (!response.ok) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const student = await response.json();
+
+            document.getElementById('studentName').textContent =
+                student.full_name;
+
+        } catch (error) {
+            window.location.href = 'login.html';
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/logout', {
+            method: 'POST'
+        });
+
+        window.location.href = 'login.html';
+    }
+
+    checkStudent();
+</script>
+
+</body>
+</html>

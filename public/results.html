@@ -1,0 +1,444 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Results</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #EAF7EF;
+            padding: 20px;
+            color: #333;
+        }
+
+        header {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 25px;
+            text-align: center;
+            background: #16834A;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        header h1 {
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 25px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: #0B5D35;
+            border-bottom: 2px solid #DCEFE3;
+            padding-bottom: 10px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        h2:first-child {
+            margin-top: 0;
+        }
+
+        .result-card {
+            background: #F5FBF7;
+            border: 1px solid #C8DFD0;
+            border-left: 5px solid #16834A;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .result-card h3 {
+            color: #0B5D35;
+            margin-bottom: 15px;
+        }
+
+        .result-card p {
+            margin: 9px 0;
+            line-height: 1.5;
+        }
+
+        .score {
+            font-size: 20px;
+            font-weight: bold;
+            color: #16834A;
+        }
+
+        .empty-message {
+            background: #F5FBF7;
+            border: 1px dashed #A8CFB5;
+            padding: 22px;
+            text-align: center;
+            border-radius: 8px;
+            color: #666;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            color: white;
+            transition: 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .delete-btn {
+            background: #D32F2F;
+        }
+
+        .delete-btn:hover {
+            background: #B71C1C;
+        }
+
+        .back-btn {
+            background: #16834A;
+        }
+
+        .back-btn:hover {
+            background: #0B5D35;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        #studentInformation {
+            background: #F5FBF7;
+            border: 1px solid #DCEFE3;
+            border-radius: 8px;
+            padding: 18px;
+        }
+
+        #studentInformation p {
+            margin: 8px 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 18px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>My Results</h1>
+    <p>View your Online Quiz and Examination records.</p>
+</header>
+
+<div class="container">
+
+    <h2>Student Information</h2>
+
+    <div id="studentInformation" class="status">
+        Loading student information...
+    </div>
+
+    <h2>Online Quiz Results</h2>
+
+    <div id="quizResults">
+        <p class="status">Loading quiz results...</p>
+    </div>
+
+    <h2>Online Examination Results</h2>
+
+    <div id="examResults">
+        <p class="status">Loading examination results...</p>
+    </div>
+
+    <div class="buttons">
+
+        <button class="delete-btn" id="deleteHistory">
+            Delete All My History
+        </button>
+
+        <button class="back-btn"
+            onclick="window.location.href='dashboard.html'">
+            Back to Dashboard
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+const studentInformation =
+    document.getElementById("studentInformation");
+
+const quizResultsContainer =
+    document.getElementById("quizResults");
+
+const examResultsContainer =
+    document.getElementById("examResults");
+
+const deleteButton =
+    document.getElementById("deleteHistory");
+
+
+function escapeHTML(value) {
+
+    return String(value ?? "").replace(/[&<>"']/g, function(character) {
+
+        return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[character];
+
+    });
+
+}
+
+
+function formatDate(dateValue) {
+
+    if (!dateValue) {
+        return "Date unavailable";
+    }
+
+    const date = new Date(dateValue);
+
+    if (isNaN(date.getTime())) {
+        return escapeHTML(dateValue);
+    }
+
+    return escapeHTML(date.toLocaleString());
+
+}
+
+
+function displayResults(results, container, title) {
+
+    if (!Array.isArray(results) || results.length === 0) {
+
+        container.innerHTML = `
+            <div class="empty-message">
+                <p>No ${title} records yet.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = results.map((record, index) => {
+
+        const percentage = Number(record.percentage).toFixed(2);
+
+        return `
+            <div class="result-card">
+
+                <h3>${title} #${index + 1}</h3>
+
+                <p>
+                    <strong>Student Name:</strong>
+                    ${escapeHTML(record.full_name)}
+                </p>
+
+                <p>
+                    <strong>Student ID:</strong>
+                    ${escapeHTML(record.student_id)}
+                </p>
+
+                <p class="score">
+                    Score: ${escapeHTML(record.score)}
+                    / ${escapeHTML(record.total)}
+                </p>
+
+                <p>
+                    <strong>Percentage:</strong>
+                    ${escapeHTML(percentage)}%
+                </p>
+
+                <p>
+                    <strong>Date:</strong>
+                    ${formatDate(record.date)}
+                </p>
+
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+async function loadResults() {
+
+    try {
+
+        const studentResponse = await fetch("/api/student", {
+            credentials: "same-origin"
+        });
+
+        if (!studentResponse.ok) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        const student = await studentResponse.json();
+
+        studentInformation.innerHTML = `
+            <p>
+                <strong>Name:</strong>
+                ${escapeHTML(student.full_name)}
+            </p>
+
+            <p>
+                <strong>Student ID:</strong>
+                ${escapeHTML(student.student_id)}
+            </p>
+        `;
+
+
+        const response = await fetch("/api/results", {
+            credentials: "same-origin"
+        });
+
+        if (!response.ok) {
+            throw new Error("Unable to load your results.");
+        }
+
+        const data = await response.json();
+
+        displayResults(
+            data.quizResults,
+            quizResultsContainer,
+            "Quiz"
+        );
+
+        displayResults(
+            data.examResults,
+            examResultsContainer,
+            "Examination"
+        );
+
+    } catch (error) {
+
+        console.error("Results loading error:", error);
+
+        quizResultsContainer.innerHTML = `
+            <p class="status">
+                Unable to load quiz results.
+            </p>
+        `;
+
+        examResultsContainer.innerHTML = `
+            <p class="status">
+                Unable to load examination results.
+            </p>
+        `;
+
+        alert(error.message);
+
+    }
+
+}
+
+
+// DELETE ONLY THE LOGGED-IN STUDENT'S HISTORY
+
+deleteButton.addEventListener("click", async function() {
+
+    const confirmed = confirm(
+        "Are you sure you want to delete all your Quiz and Examination history? This action cannot be undone."
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    deleteButton.disabled = true;
+
+    try {
+
+        const response = await fetch("/api/results", {
+            method: "DELETE",
+            credentials: "same-origin"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Unable to delete history."
+            );
+        }
+
+        alert(
+            "Your Quiz and Examination history has been deleted successfully!"
+        );
+
+        await loadResults();
+
+    } catch (error) {
+
+        console.error("Delete history error:", error);
+
+        alert(error.message);
+
+    } finally {
+
+        deleteButton.disabled = false;
+
+    }
+
+});
+
+
+loadResults();
+
+</script>
+
+</body>
+</html>

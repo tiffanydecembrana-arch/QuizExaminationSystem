@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Examination System</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #EAF7EF;
+            color: #333;
+        }
+
+        header {
+            background: #ffffff;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px #00000010;
+        }
+
+        .logo {
+            color: #16834A;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .login-btn {
+            background: #16834A;
+            color: white;
+            padding: 10px 22px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .login-btn:hover {
+            background: #0B5D35;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 90px 20px;
+        }
+
+        .hero h1 {
+            color: #0B5D35;
+            font-size: 38px;
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            color: #64748b;
+            font-size: 17px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .start-btn {
+            display: inline-block;
+            background: #16834A;
+            color: white;
+            padding: 14px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            width: 230px;
+            padding: 25px;
+            text-align: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px #00000010;
+            border-top: 4px solid #16834A;
+        }
+
+        .card h3 {
+            color: #16834A;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #64748b;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 18px 5%;
+            }
+
+            .logo {
+                font-size: 18px;
+            }
+
+            .hero {
+                padding: 65px 15px;
+            }
+
+            .hero h1 {
+                font-size: 29px;
+            }
+
+            .features {
+                padding: 15px;
+            }
+
+            .card {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">QUIZ PORTAL</div>
+        <a href="login.html" class="login-btn">Student Login</a>
+    </header>
+
+    <section class="hero">
+
+        <h1>Quiz Examination System</h1>
+
+        <p>
+            Welcome to the Flashcard-Style Online Quiz
+            and Examination System.
+        </p>
+
+        <p>
+            Pamantasan ng Lungsod ng Muntinlupa
+        </p>
+
+        <a href="login.html" class="login-btn">Student Login</a>
+
+    </section>
+
+    <section class="features">
+
+        <div class="card">
+            <h3>Flashcards</h3>
+            <p>Review questions using interactive flashcards.</p>
+        </div>
+
+        <div class="card">
+            <h3>Online Quiz</h3>
+            <p>Answer multiple-choice questions online.</p>
+        </div>
+
+        <div class="card">
+            <h3>Auto-Grading</h3>
+            <p>Get your examination score automatically.</p>
+        </div>
+
+        <div class="card">
+            <h3>Random Questions</h3>
+            <p>Questions are arranged in random order.</p>
+        </div>
+
+    </section>
+
+    <footer>
+        © 2026 Quiz Examination System | PLMun - CITCS
+    </footer>
+
+</body>
+</html>

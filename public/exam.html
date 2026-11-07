@@ -1,0 +1,522 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Examination</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #EAF7EF;
+            color: #333;
+            padding: 20px;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            text-align: center;
+            padding: 25px 20px;
+            border-radius: 12px;
+            max-width: 800px;
+            margin: 20px auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        header h1 {
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #E8F5EC;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 30px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-top: 5px solid #16834A;
+        }
+
+        .container h2 {
+            color: #0B5D35;
+            margin-bottom: 10px;
+        }
+
+        .container > p {
+            color: #64748b;
+            margin-bottom: 25px;
+        }
+
+        .exam-progress {
+            display: flex;
+            justify-content: space-between;
+            color: #0B5D35;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #DCEFE3;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        #progressFill {
+            width: 3%;
+            height: 100%;
+            background: #16834A;
+            transition: width 0.3s;
+        }
+
+        .question-card {
+            background: #F5FBF7;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #16834A;
+            min-height: 250px;
+        }
+
+        .question-card h3 {
+            color: #0B5D35;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .choice {
+            display: block;
+            padding: 14px;
+            margin: 12px 0;
+            background: white;
+            border: 1px solid #C8DFD0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .choice:hover {
+            background: #EAF7EF;
+            border-color: #16834A;
+        }
+
+        .choice input {
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #16834A;
+        }
+
+        .exam-navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        button {
+            background: #16834A;
+            color: white;
+            padding: 12px 22px;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        #submitExam {
+            display: block;
+            margin: 25px auto 0;
+        }
+
+        #result {
+            background: #EAF7EF;
+            padding: 20px;
+            margin-top: 25px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        #result h2 {
+            color: #0B5D35;
+            margin-bottom: 15px;
+        }
+
+        #result h3,
+        #result p {
+            margin: 10px 0;
+        }
+
+        #result button {
+            margin-top: 15px;
+        }
+
+        .back {
+            display: block;
+            margin-top: 25px;
+            color: #16834A;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .back:hover {
+            color: #0B5D35;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 18px;
+            }
+
+            .question-card {
+                padding: 18px;
+            }
+
+            .exam-navigation button {
+                padding: 11px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Online Examination</h1>
+    <p>Test your knowledge in Information Technology.</p>
+</header>
+
+<div class="container">
+
+    <h2>Multiple Choice Examination</h2>
+    <p>Choose the best answer for each question.</p>
+
+    <div class="exam-progress">
+        <span id="questionNumber">Question 1 of 30</span>
+        <span id="progressPercent">3%</span>
+    </div>
+
+    <div class="progress-bar">
+        <div id="progressFill"></div>
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="exam-navigation">
+        <button id="previousQuestion" type="button">Previous</button>
+        <button id="nextQuestion" type="button">Next</button>
+    </div>
+
+    <button id="submitExam" type="button" style="display:none;">
+        Submit Exam
+    </button>
+
+    <div id="result"></div>
+
+    <a href="dashboard.html" class="back">Back to Dashboard</a>
+
+</div>
+
+<script>
+
+const questions = [
+    { question: "What does CPU stand for?", options: ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility", "Control Processing User"], answer: "Central Processing Unit" },
+    { question: "Which language is commonly used for web page structure?", options: ["CSS", "HTML", "Java", "Python"], answer: "HTML" },
+    { question: "What does RAM stand for?", options: ["Read Access Memory", "Random Access Memory", "Run Active Memory", "Rapid Application Memory"], answer: "Random Access Memory" },
+    { question: "Which device connects multiple computers in a local network?", options: ["Printer", "Scanner", "Switch", "Speaker"], answer: "Switch" },
+    { question: "What is the main function of an operating system?", options: ["Manage computer resources", "Create websites", "Edit pictures only", "Print documents"], answer: "Manage computer resources" },
+    { question: "Which of the following is a programming language?", options: ["HTML", "Python", "HTTP", "Wi-Fi"], answer: "Python" },
+    { question: "What does URL stand for?", options: ["Uniform Resource Locator", "Universal Reading Link", "User Reference Location", "Unified Resource Language"], answer: "Uniform Resource Locator" },
+    { question: "Which software is used to browse websites?", options: ["Microsoft Excel", "Google Chrome", "Adobe Photoshop", "Notepad"], answer: "Google Chrome" },
+    { question: "What is the purpose of a database?", options: ["Store and organize data", "Increase screen brightness", "Cool the computer", "Play music"], answer: "Store and organize data" },
+    { question: "Which SQL command retrieves data from a table?", options: ["INSERT", "DELETE", "SELECT", "UPDATE"], answer: "SELECT" },
+    { question: "What does LAN stand for?", options: ["Local Area Network", "Large Access Node", "Long Area Number", "Linked Application Network"], answer: "Local Area Network" },
+    { question: "Which component stores files permanently?", options: ["RAM", "SSD", "CPU", "Cache"], answer: "SSD" },
+    { question: "What is the main purpose of Computer Systems Servicing (CSS)?", options: ["To design websites", "To install, maintain, and troubleshoot computer systems", "To create mobile applications", "To edit videos"], answer: "To install, maintain, and troubleshoot computer systems" },
+    { question: "Which HTML tag creates a hyperlink?", options: ["<p>", "<img>", "<a>", "<h1>"], answer: "<a>" },
+    { question: "What is malware?", options: ["A type of hardware", "Malicious software", "A programming language", "A network cable"], answer: "Malicious software" },
+    { question: "Which device is used to input text into a computer?", options: ["Monitor", "Keyboard", "Speaker", "Projector"], answer: "Keyboard" },
+    { question: "What does IP stand for in networking?", options: ["Internet Protocol", "Internal Program", "Information Process", "Integrated Platform"], answer: "Internet Protocol" },
+    { question: "Which of the following is an example of cloud storage?", options: ["Google Drive", "Calculator", "Paint", "Task Manager"], answer: "Google Drive" },
+    { question: "What is the function of a firewall?", options: ["Protect a network from unauthorized access", "Increase monitor size", "Store images", "Charge a laptop"], answer: "Protect a network from unauthorized access" },
+    { question: "Which company developed the Windows operating system?", options: ["Apple", "Google", "Microsoft", "Intel"], answer: "Microsoft" },
+    { question: "What does GUI stand for?", options: ["General User Internet", "Graphical User Interface", "Global Utility Input", "Graphics Unit Integration"], answer: "Graphical User Interface" },
+    { question: "Which number system uses only 0 and 1?", options: ["Decimal", "Octal", "Binary", "Hexadecimal"], answer: "Binary" },
+    { question: "What is the main purpose of antivirus software?", options: ["Detect and remove malicious software", "Create spreadsheets", "Design websites", "Manage printers"], answer: "Detect and remove malicious software" },
+    { question: "Which protocol is commonly used to access secure websites?", options: ["FTP", "HTTPS", "SMTP", "POP3"], answer: "HTTPS" },
+    { question: "What does USB stand for?", options: ["Universal Serial Bus", "Unified System Board", "User Storage Backup", "Universal Software Base"], answer: "Universal Serial Bus" },
+    { question: "Which data type stores true or false values?", options: ["String", "Integer", "Boolean", "Float"], answer: "Boolean" },
+    { question: "What is the purpose of a router?", options: ["Connect networks and direct data", "Print documents", "Store passwords", "Display images"], answer: "Connect networks and direct data" },
+    { question: "Which application is commonly used for spreadsheets?", options: ["Microsoft Word", "Microsoft Excel", "Microsoft PowerPoint", "Google Chrome"], answer: "Microsoft Excel" },
+    { question: "What does HTTP stand for?", options: ["Hypertext Transfer Protocol", "High Technology Transfer Program", "Hyperlink Text Processing", "Home Tool Transfer Protocol"], answer: "Hypertext Transfer Protocol" },
+    { question: "What is debugging in programming?", options: ["Finding and fixing errors in code", "Deleting all program files", "Installing a printer", "Changing the computer wallpaper"], answer: "Finding and fixing errors in code" }
+];
+
+const STORAGE_KEY = "examProgress";
+
+let savedProgress = JSON.parse(
+    localStorage.getItem(STORAGE_KEY) || "null"
+);
+
+function shuffleQuestions() {
+    const order = questions.map((q, index) => index);
+
+    for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+    }
+
+    return order;
+}
+
+let questionOrder;
+let currentQuestion;
+let savedAnswers;
+
+if (
+    savedProgress &&
+    Array.isArray(savedProgress.order) &&
+    savedProgress.order.length === questions.length
+) {
+    questionOrder = savedProgress.order;
+    currentQuestion = savedProgress.currentQuestion ?? 0;
+    savedAnswers = savedProgress.answers || {};
+} else {
+    questionOrder = shuffleQuestions();
+    currentQuestion = 0;
+    savedAnswers = {};
+}
+
+currentQuestion = Math.max(
+    0,
+    Math.min(currentQuestion, questions.length - 1)
+);
+
+function saveProgress() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        order: questionOrder,
+        currentQuestion,
+        answers: savedAnswers
+    }));
+}
+
+const container = document.getElementById("questionsContainer");
+const questionNumber = document.getElementById("questionNumber");
+const progressPercent = document.getElementById("progressPercent");
+const progressFill = document.getElementById("progressFill");
+const previousButton = document.getElementById("previousQuestion");
+const nextButton = document.getElementById("nextQuestion");
+const submitButton = document.getElementById("submitExam");
+const result = document.getElementById("result");
+
+function escapeHTML(text) {
+    return String(text).replace(/[&<>"']/g, function(character) {
+        return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[character];
+    });
+}
+
+function displayQuestion() {
+    const originalIndex = questionOrder[currentQuestion];
+    const q = questions[originalIndex];
+
+    questionNumber.textContent =
+        "Question " + (currentQuestion + 1) + " of " + questions.length;
+
+    const percentage = Math.round(
+        ((currentQuestion + 1) / questions.length) * 100
+    );
+
+    progressPercent.textContent = percentage + "%";
+    progressFill.style.width = percentage + "%";
+
+    let html = `
+        <div class="question-card">
+            <h3>${currentQuestion + 1}. ${escapeHTML(q.question)}</h3>
+    `;
+
+    q.options.forEach((choice, choiceIndex) => {
+        const isChecked = savedAnswers[originalIndex] === choiceIndex;
+
+        html += `
+            <label class="choice">
+                <input type="radio"
+                    name="currentAnswer"
+                    value="${choiceIndex}"
+                    ${isChecked ? "checked" : ""}>
+                ${String.fromCharCode(65 + choiceIndex)}. ${escapeHTML(choice)}
+            </label>
+        `;
+    });
+
+    html += "</div>";
+    container.innerHTML = html;
+
+    previousButton.disabled = currentQuestion === 0;
+
+    if (currentQuestion === questions.length - 1) {
+        nextButton.style.display = "none";
+    } else {
+        nextButton.style.display = "block";
+    }
+
+    submitButton.style.display = "block";
+
+    saveProgress();
+}
+
+container.addEventListener("change", function(event) {
+    if (event.target.name === "currentAnswer") {
+        const originalIndex = questionOrder[currentQuestion];
+        savedAnswers[originalIndex] = Number(event.target.value);
+        saveProgress();
+    }
+});
+
+previousButton.addEventListener("click", function() {
+    if (currentQuestion > 0) {
+        currentQuestion--;
+        displayQuestion();
+    }
+});
+
+nextButton.addEventListener("click", function() {
+    if (currentQuestion < questions.length - 1) {
+        currentQuestion++;
+        displayQuestion();
+    }
+});
+
+submitButton.addEventListener("click", async function() {
+
+    const unansweredIndex = questionOrder.findIndex(
+        originalIndex => !Object.prototype.hasOwnProperty.call(savedAnswers, originalIndex)
+    );
+
+    if (unansweredIndex !== -1) {
+        alert("You still have an unanswered question. Please answer it before submitting.");
+        currentQuestion = unansweredIndex;
+        displayQuestion();
+        return;
+    }
+
+    submitButton.disabled = true;
+
+    try {
+        const studentResponse = await fetch("/api/student", {
+            credentials: "same-origin"
+        });
+
+        if (!studentResponse.ok) {
+            throw new Error("Your login session has expired. Please log in again.");
+        }
+
+        const student = await studentResponse.json();
+
+        let score = 0;
+
+        questions.forEach((q, index) => {
+            const selectedIndex = savedAnswers[index];
+
+            if (
+                selectedIndex !== undefined &&
+                q.options[selectedIndex] === q.answer
+            ) {
+                score++;
+            }
+        });
+
+        const response = await fetch("/api/exam-results", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+                score: score,
+                total: questions.length
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Unable to save examination result.");
+        }
+
+        const percentage = Number(
+            ((score / questions.length) * 100).toFixed(2)
+        );
+
+        const examDate = new Date().toLocaleString();
+
+        localStorage.removeItem(STORAGE_KEY);
+
+        container.style.display = "none";
+        previousButton.style.display = "none";
+        nextButton.style.display = "none";
+        submitButton.style.display = "none";
+
+        result.style.display = "block";
+
+        result.innerHTML = `
+            <h2>Examination Result</h2>
+            <h3>Student: ${escapeHTML(student.full_name)}</h3>
+            <h3>Your Score: ${score} / ${questions.length}</h3>
+            <p>Percentage: ${percentage}%</p>
+            <p>${score >= 15 ? "Good job! Keep learning." : "Keep practicing and try again!"}</p>
+            <p>Date: ${escapeHTML(examDate)}</p>
+            <button onclick="window.location.href='results.html'">
+                View My Results
+            </button>
+        `;
+
+        alert("Examination submitted successfully! Your result has been saved.");
+
+    } catch (error) {
+        console.error("Examination submission error:", error);
+        alert(error.message);
+        submitButton.disabled = false;
+    }
+});
+
+displayQuestion();
+
+</script>
+
+</body>
+</html>
