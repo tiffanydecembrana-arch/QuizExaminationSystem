@@ -11,26 +11,57 @@ const {
 } = require('./database/db');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction) {
+    app.set('trust proxy', 1);
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
-    secret: 'quiz-system-secret-change-this',
+    secret: process.env.SESSION_SECRET || 'local-development-only-change-this-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
+        secure: isProduction,
+        sameSite: 'lax',
         maxAge: 60 * 60 * 1000
     }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// CHECK STUDENT LOGIN
+// PASSWORD FUNCTIONS
+function createPasswordHash(password) {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+    return salt + ':' + hash;
+}
+
+function verifyPassword(password, savedPassword) {
+    try {
+        const [salt, savedHash] = savedPassword.split(':');
+
+        const savedBuffer = Buffer.from(savedHash, 'hex');
+        const enteredBuffer = crypto.scryptSync(password, salt, 64);
+
+        if (savedBuffer.length !== enteredBuffer.length) {
+            return false;
+        }
+
+        return crypto.timingSafeEqual(savedBuffer, enteredBuffer);
+    } catch {
+        return false;
+    }
+}
+
+// LOGIN PROTECTION
 function requireLogin(req, res, next) {
-    if (!req.session.student) {
+    if (!req.session || !req.session.student) {
         return res.status(401).json({
             message: 'Please log in first.'
         });
@@ -39,7 +70,7 @@ function requireLogin(req, res, next) {
     next();
 }
 
-// STUDENT REGISTRATION
+// REGISTER
 app.post('/api/register', (req, res) => {
     const {
         full_name,
@@ -52,6 +83,16 @@ app.post('/api/register', (req, res) => {
     if (!full_name || !student_id || !email || !password || !confirm_password) {
         return res.status(400).json({
             message: 'Please complete all fields.'
+        });
+    }
+
+    const cleanName = String(full_name).trim();
+    const cleanStudentId = String(student_id).trim();
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    if (cleanName.length < 2 || cleanName.length > 100) {
+        return res.status(400).json({
+            message: 'Full Name must be between 2 and 100 characters.'
         });
     }
 
@@ -70,19 +111,15 @@ app.post('/api/register', (req, res) => {
     try {
         const db = getDatabase();
 
-        const salt = crypto.randomBytes(16).toString('hex');
-        const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-        const passwordHash = salt + ':' + hash;
-
         db.run(
             `INSERT INTO students
             (full_name, student_id, email, password)
             VALUES (?, ?, ?, ?)`,
             [
-                full_name.trim(),
-                student_id.trim(),
-                email.trim().toLowerCase(),
-                passwordHash
+                cleanName,
+                cleanStudentId,
+                cleanEmail,
+                createPasswordHash(password)
             ]
         );
 
@@ -107,7 +144,7 @@ app.post('/api/register', (req, res) => {
     }
 });
 
-// STUDENT LOGIN
+// LOGIN
 app.post('/api/login', (req, res) => {
     const { student_id, password } = req.body;
 
@@ -117,15 +154,15 @@ app.post('/api/login', (req, res) => {
         });
     }
 
-    const db = getDatabase();
-
     try {
+        const db = getDatabase();
+
         const result = db.exec(
             'SELECT * FROM students WHERE student_id = ?',
-            [student_id.trim()]
+            [String(student_id).trim()]
         );
 
-        if (result.length === 0 || result[0].values.length === 0) {
+        if (!result.length || !result[0].values.length) {
             return res.status(401).json({
                 message: 'Invalid Student ID or password.'
             });
@@ -133,32 +170,40 @@ app.post('/api/login', (req, res) => {
 
         const student = result[0].values[0];
 
-        const savedPassword = student[4];
-        const [salt, savedHash] = savedPassword.split(':');
-
-        const enteredHash = crypto.scryptSync(password, salt, 64).toString('hex');
-
-        const isMatch = crypto.timingSafeEqual(
-            Buffer.from(savedHash, 'hex'),
-            Buffer.from(enteredHash, 'hex')
-        );
-
-        if (!isMatch) {
+        if (!verifyPassword(password, student[4])) {
             return res.status(401).json({
                 message: 'Invalid Student ID or password.'
             });
         }
 
-        req.session.student = {
-            id: student[0],
-            full_name: student[1],
-            student_id: student[2],
-            email: student[3]
-        };
+        req.session.regenerate((error) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({
+                    message: 'Unable to start login session.'
+                });
+            }
 
-        res.json({
-            message: 'Login successful!',
-            redirect: 'dashboard.html'
+            req.session.student = {
+                id: student[0],
+                full_name: student[1],
+                student_id: student[2],
+                email: student[3]
+            };
+
+            req.session.save((saveError) => {
+                if (saveError) {
+                    console.error(saveError);
+                    return res.status(500).json({
+                        message: 'Unable to save login session.'
+                    });
+                }
+
+                res.json({
+                    message: 'Login successful!',
+                    redirect: 'dashboard.html'
+                });
+            });
         });
 
     } catch (error) {
@@ -170,15 +215,167 @@ app.post('/api/login', (req, res) => {
     }
 });
 
-// CHECK LOGIN STATUS
-app.get('/api/student', (req, res) => {
-    if (!req.session.student) {
-        return res.status(401).json({
-            message: 'Not logged in.'
+// CHECK STUDENT
+app.get('/api/student', requireLogin, (req, res) => {
+    res.json(req.session.student);
+});
+
+// REGISTERED STUDENTS - NAMES ONLY
+app.get('/api/settings/students', requireLogin, (req, res) => {
+    try {
+        const db = getDatabase();
+
+        const result = db.exec(
+            'SELECT full_name FROM students ORDER BY full_name COLLATE NOCASE'
+        );
+
+        const students = result.length
+            ? result[0].values.map(row => ({
+                full_name: row[0]
+            }))
+            : [];
+
+        res.json({ students });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Unable to load registered students.'
+        });
+    }
+});
+
+// CHANGE FULL NAME
+app.put('/api/settings/profile', requireLogin, (req, res) => {
+    const fullName = String(req.body.full_name || '').trim();
+
+    if (fullName.length < 2 || fullName.length > 100) {
+        return res.status(400).json({
+            message: 'Full Name must be between 2 and 100 characters.'
         });
     }
 
-    res.json(req.session.student);
+    try {
+        const db = getDatabase();
+
+        db.run(
+            'UPDATE students SET full_name = ? WHERE id = ?',
+            [fullName, req.session.student.id]
+        );
+
+        saveDatabase();
+
+        req.session.student.full_name = fullName;
+
+        req.session.save(error => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({
+                    message: 'Name updated, but session refresh failed.'
+                });
+            }
+
+            res.json({
+                message: 'Your Full Name has been updated successfully!',
+                full_name: fullName
+            });
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Unable to update Full Name.'
+        });
+    }
+});
+
+// CHANGE PASSWORD
+app.put('/api/settings/password', requireLogin, (req, res) => {
+    const {
+        current_password,
+        new_password,
+        confirm_password
+    } = req.body;
+
+    if (!current_password || !new_password || !confirm_password) {
+        return res.status(400).json({
+            message: 'Please complete all password fields.'
+        });
+    }
+
+    if (new_password.length < 8) {
+        return res.status(400).json({
+            message: 'New password must be at least 8 characters.'
+        });
+    }
+
+    if (new_password !== confirm_password) {
+        return res.status(400).json({
+            message: 'New passwords do not match.'
+        });
+    }
+
+    if (current_password === new_password) {
+        return res.status(400).json({
+            message: 'New password must be different from current password.'
+        });
+    }
+
+    try {
+        const db = getDatabase();
+
+        const result = db.exec(
+            'SELECT password FROM students WHERE id = ?',
+            [req.session.student.id]
+        );
+
+        if (!result.length || !result[0].values.length) {
+            return res.status(404).json({
+                message: 'Student account not found.'
+            });
+        }
+
+        const savedPassword = result[0].values[0][0];
+
+        if (!verifyPassword(current_password, savedPassword)) {
+            return res.status(401).json({
+                message: 'Current password is incorrect.'
+            });
+        }
+
+        db.run(
+            'UPDATE students SET password = ? WHERE id = ?',
+            [
+                createPasswordHash(new_password),
+                req.session.student.id
+            ]
+        );
+
+        saveDatabase();
+
+        res.json({
+            message: 'Your password has been changed successfully.'
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: 'Unable to change password.'
+        });
+    }
+});
+
+// SECURITY SETTINGS
+app.get('/api/settings/security', requireLogin, (req, res) => {
+    res.json({
+        accountSession: 'Active',
+        sessionDurationMinutes: 60,
+        passwordProtection: 'Passwords are stored as salted hashes.',
+        sessionInformation: 'This page shows your current login session only.'
+    });
 });
 
 // SAVE QUIZ RESULT
@@ -200,7 +397,6 @@ app.post('/api/quiz-results', requireLogin, (req, res) => {
     try {
         const db = getDatabase();
         const percentage = Number(((score / total) * 100).toFixed(2));
-        const date = new Date().toISOString();
 
         db.run(
             `INSERT INTO quiz_results
@@ -211,7 +407,7 @@ app.post('/api/quiz-results', requireLogin, (req, res) => {
                 score,
                 total,
                 percentage,
-                date
+                new Date().toISOString()
             ]
         );
 
@@ -249,7 +445,6 @@ app.post('/api/exam-results', requireLogin, (req, res) => {
     try {
         const db = getDatabase();
         const percentage = Number(((score / total) * 100).toFixed(2));
-        const date = new Date().toISOString();
 
         db.run(
             `INSERT INTO exam_results
@@ -260,7 +455,7 @@ app.post('/api/exam-results', requireLogin, (req, res) => {
                 score,
                 total,
                 percentage,
-                date
+                new Date().toISOString()
             ]
         );
 
@@ -279,7 +474,7 @@ app.post('/api/exam-results', requireLogin, (req, res) => {
     }
 });
 
-// GET LOGGED-IN STUDENT'S RESULTS
+// GET MY RESULTS
 app.get('/api/results', requireLogin, (req, res) => {
     try {
         const db = getDatabase();
@@ -295,8 +490,7 @@ app.get('/api/results', requireLogin, (req, res) => {
                 quiz_results.percentage,
                 quiz_results.date
              FROM quiz_results
-             JOIN students
-             ON quiz_results.student_id = students.id
+             JOIN students ON quiz_results.student_id = students.id
              WHERE quiz_results.student_id = ?
              ORDER BY quiz_results.id DESC`,
             [studentId]
@@ -312,8 +506,7 @@ app.get('/api/results', requireLogin, (req, res) => {
                 exam_results.percentage,
                 exam_results.date
              FROM exam_results
-             JOIN students
-             ON exam_results.student_id = students.id
+             JOIN students ON exam_results.student_id = students.id
              WHERE exam_results.student_id = ?
              ORDER BY exam_results.id DESC`,
             [studentId]
@@ -322,12 +515,10 @@ app.get('/api/results', requireLogin, (req, res) => {
         function convertResults(data) {
             if (!data.length) return [];
 
-            const columns = data[0].columns;
-
             return data[0].values.map(row => {
                 const record = {};
 
-                columns.forEach((column, index) => {
+                data[0].columns.forEach((column, index) => {
                     record[column] = row[index];
                 });
 
@@ -349,7 +540,7 @@ app.get('/api/results', requireLogin, (req, res) => {
     }
 });
 
-// DELETE LOGGED-IN STUDENT'S HISTORY ONLY
+// DELETE MY HISTORY ONLY
 app.delete('/api/results', requireLogin, (req, res) => {
     try {
         const db = getDatabase();
@@ -382,7 +573,28 @@ app.delete('/api/results', requireLogin, (req, res) => {
 
 // LOGOUT
 app.post('/api/logout', (req, res) => {
-    req.session.destroy(() => {
+    if (!req.session) {
+        return res.json({
+            message: 'Logged out successfully.'
+        });
+    }
+
+    req.session.destroy(error => {
+        if (error) {
+            console.error(error);
+
+            return res.status(500).json({
+                message: 'Unable to log out.'
+            });
+        }
+
+        res.clearCookie('connect.sid', {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: isProduction
+        });
+
         res.json({
             message: 'Logged out successfully.'
         });
@@ -392,10 +604,9 @@ app.post('/api/logout', (req, res) => {
 // START SERVER
 initializeDatabase()
     .then(() => {
-        app.listen(PORT, () => {
-            console.log('Database connected successfully!');
-            console.log('Server running at http://localhost:' + PORT);
-        });
+        app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+});
     })
     .catch(error => {
         console.error('Database error:', error);

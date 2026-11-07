@@ -8,3 +8,6 @@ database/*.sqlite
 database/*.db
 
 *.log
+.env
+node_modules/
+database/*.sqlite

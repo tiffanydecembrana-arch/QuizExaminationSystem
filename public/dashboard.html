@@ -23,6 +23,7 @@
             color: white;
             padding: 25px 20px;
             text-align: center;
+            position: relative;
         }
 
         header h1 {
@@ -31,6 +32,49 @@
 
         header p {
             margin-bottom: 0;
+        }
+
+        .settings {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+        }
+
+        .settings-button {
+            background: white;
+            color: #16834A;
+            padding: 10px 15px;
+        }
+
+        .settings-button:hover {
+            background: #EAF7EF;
+        }
+
+        .settings-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 45px;
+            width: 210px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px #00000025;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .settings-menu button {
+            display: block;
+            width: 100%;
+            background: white;
+            color: #0B5D35;
+            text-align: left;
+            padding: 13px 15px;
+            border-radius: 0;
+        }
+
+        .settings-menu button:hover {
+            background: #EAF7EF;
         }
 
         .container {
@@ -102,17 +146,89 @@
             background: #0B5D35;
         }
 
-        .logout-container {
-            text-align: center;
-            margin-top: 30px;
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #00000070;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            z-index: 20;
         }
 
-        .logout-button {
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 430px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px #00000025;
+        }
+
+        .modal-content h2 {
+            color: #0B5D35;
+            margin-top: 0;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        .modal-content label {
+            color: #334155;
+            font-weight: bold;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .cancel-button {
             background: #64748b;
         }
 
-        .logout-button:hover {
+        .cancel-button:hover {
             background: #475569;
+        }
+
+        .student-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+
+        .student-list li {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        .security-item {
+            background: #EAF7EF;
+            padding: 12px;
+            border-radius: 7px;
+            margin: 10px 0;
+            color: #0B5D35;
+        }
+
+        #message {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #0B5D35;
         }
 
         @media (max-width: 600px) {
@@ -123,6 +239,12 @@
 
             header h1 {
                 font-size: 24px;
+                padding-top: 35px;
+            }
+
+            .settings {
+                top: 10px;
+                right: 10px;
             }
         }
     </style>
@@ -131,6 +253,20 @@
 <body>
 
 <header>
+    <div class="settings">
+        <button class="settings-button" onclick="toggleSettings()">
+            ⚙ Settings
+        </button>
+
+        <div class="settings-menu" id="settingsMenu">
+            <button onclick="showStudents()">Registered Students</button>
+            <button onclick="showUsername()">Change Username</button>
+            <button onclick="showPassword()">Change Password</button>
+            <button onclick="showSecurity()">Security Settings</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+
     <h1>Quiz Examination System</h1>
     <p>Student Dashboard</p>
 </header>
@@ -177,13 +313,74 @@
         </div>
 
     </div>
+</div>
 
-    <div class="logout-container">
-        <button class="logout-button" onclick="logout()">
-            Logout
-        </button>
+<!-- REGISTERED STUDENTS -->
+<div class="modal" id="studentsModal">
+    <div class="modal-content">
+        <h2>Registered Students</h2>
+        <p>Names of registered students only.</p>
+        <ul class="student-list" id="studentList"></ul>
+
+        <div class="modal-actions">
+            <button class="cancel-button" onclick="closeModals()">Close</button>
+        </div>
     </div>
+</div>
 
+<!-- CHANGE USERNAME -->
+<div class="modal" id="usernameModal">
+    <div class="modal-content">
+        <h2>Change Username</h2>
+        <p>Change your registered Full Name.</p>
+
+        <label for="newFullName">New Full Name</label>
+        <input type="text" id="newFullName" maxlength="100"
+               placeholder="Enter your new full name">
+
+        <div class="modal-actions">
+            <button onclick="changeUsername()">Save Changes</button>
+            <button class="cancel-button" onclick="closeModals()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- CHANGE PASSWORD -->
+<div class="modal" id="passwordModal">
+    <div class="modal-content">
+        <h2>Change Password</h2>
+
+        <label for="currentPassword">Current Password</label>
+        <input type="password" id="currentPassword"
+               placeholder="Enter current password">
+
+        <label for="newPassword">New Password</label>
+        <input type="password" id="newPassword"
+               placeholder="Enter new password">
+
+        <label for="confirmPassword">Confirm New Password</label>
+        <input type="password" id="confirmPassword"
+               placeholder="Confirm new password">
+
+        <div class="modal-actions">
+            <button onclick="changePassword()">Update Password</button>
+            <button class="cancel-button" onclick="closeModals()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- SECURITY SETTINGS -->
+<div class="modal" id="securityModal">
+    <div class="modal-content">
+        <h2>Security Settings</h2>
+        <div id="securityInformation">
+            Loading security information...
+        </div>
+
+        <div class="modal-actions">
+            <button class="cancel-button" onclick="closeModals()">Close</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -206,13 +403,222 @@
         }
     }
 
-    async function logout() {
-        await fetch('/api/logout', {
-            method: 'POST'
+    function toggleSettings() {
+        const menu = document.getElementById('settingsMenu');
+
+        menu.style.display =
+            menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function closeModals() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.style.display = 'none';
         });
 
-        window.location.href = 'login.html';
+        document.getElementById('settingsMenu').style.display = 'none';
+        document.getElementById('message')?.remove();
     }
+
+    function openModal(id) {
+        closeModals();
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    async function showStudents() {
+        openModal('studentsModal');
+
+        const list = document.getElementById('studentList');
+        list.innerHTML = '<li>Loading students...</li>';
+
+        try {
+            const response = await fetch('/api/settings/students');
+
+            if (!response.ok) {
+                throw new Error('Unable to load students.');
+            }
+
+            const data = await response.json();
+            list.innerHTML = '';
+
+            if (!data.students.length) {
+                list.innerHTML = '<li>No registered students found.</li>';
+                return;
+            }
+
+            data.students.forEach(student => {
+                const li = document.createElement('li');
+                li.textContent = student.full_name;
+                list.appendChild(li);
+            });
+
+        } catch (error) {
+            list.innerHTML = '<li>Unable to load student list.</li>';
+        }
+    }
+
+    function showUsername() {
+        openModal('usernameModal');
+
+        document.getElementById('newFullName').value =
+            document.getElementById('studentName').textContent;
+    }
+
+    async function changeUsername() {
+        const full_name =
+            document.getElementById('newFullName').value.trim();
+
+        if (full_name.length < 2) {
+            alert('Please enter a valid Full Name.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/settings/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ full_name })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.message || 'Unable to update Full Name.');
+                return;
+            }
+
+            document.getElementById('studentName').textContent =
+                data.full_name;
+
+            alert(data.message);
+            closeModals();
+
+        } catch (error) {
+            alert('Something went wrong. Please try again.');
+        }
+    }
+
+    function showPassword() {
+        openModal('passwordModal');
+
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+    }
+
+    async function changePassword() {
+        const current_password =
+            document.getElementById('currentPassword').value;
+
+        const new_password =
+            document.getElementById('newPassword').value;
+
+        const confirm_password =
+            document.getElementById('confirmPassword').value;
+
+        if (!current_password || !new_password || !confirm_password) {
+            alert('Please complete all password fields.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/settings/password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password,
+                    new_password,
+                    confirm_password
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.message || 'Unable to change password.');
+                return;
+            }
+
+            alert(data.message);
+            closeModals();
+
+        } catch (error) {
+            alert('Something went wrong. Please try again.');
+        }
+    }
+
+    async function showSecurity() {
+        openModal('securityModal');
+
+        const information =
+            document.getElementById('securityInformation');
+
+        information.textContent = 'Loading security information...';
+
+        try {
+            const response = await fetch('/api/settings/security');
+
+            if (!response.ok) {
+                throw new Error('Unable to load security settings.');
+            }
+
+            const data = await response.json();
+
+            information.innerHTML = '';
+
+            const items = [
+                ['Account Session', data.accountSession],
+                ['Session Duration', data.sessionDurationMinutes + ' minutes'],
+                ['Password Protection', data.passwordProtection],
+                ['Session Information', data.sessionInformation]
+            ];
+
+            items.forEach(([label, value]) => {
+                const item = document.createElement('div');
+                item.className = 'security-item';
+
+                const strong = document.createElement('strong');
+                strong.textContent = label + ': ';
+
+                const span = document.createElement('span');
+                span.textContent = value;
+
+                item.appendChild(strong);
+                item.appendChild(span);
+                information.appendChild(item);
+            });
+
+        } catch (error) {
+            information.textContent =
+                'Unable to load security information.';
+        }
+    }
+
+    async function logout() {
+        const confirmed = confirm('Are you sure you want to log out?');
+
+        if (!confirmed) return;
+
+        try {
+            await fetch('/api/logout', {
+                method: 'POST'
+            });
+        } finally {
+            window.location.href = 'login.html';
+        }
+    }
+
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('settingsMenu');
+        const settings = document.querySelector('.settings');
+
+        if (!settings.contains(event.target)) {
+            menu.style.display = 'none';
+        }
+    });
 
     checkStudent();
 </script>
