@@ -1,3 +1,4 @@
+require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
@@ -6,8 +7,7 @@ const session = require('express-session');
 
 const {
     initializeDatabase,
-    getDatabase,
-    saveDatabase
+    getDatabase
 } = require('./database/db');
 
 const app = express();
@@ -71,7 +71,7 @@ function requireLogin(req, res, next) {
 }
 
 // REGISTER
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
     const {
         full_name,
         student_id,
@@ -80,7 +80,8 @@ app.post('/api/register', (req, res) => {
         confirm_password
     } = req.body;
 
-    if (!full_name || !student_id || !email || !password || !confirm_password) {
+    if (!full_name || !student_id || !email ||
+        !password || !confirm_password) {
         return res.status(400).json({
             message: 'Please complete all fields.'
         });
@@ -102,7 +103,7 @@ app.post('/api/register', (req, res) => {
         });
     }
 
-    if (password.length < 8) {
+    if (String(password).length < 8) {
         return res.status(400).json({
             message: 'Password must be at least 8 characters.'
         });
@@ -111,10 +112,10 @@ app.post('/api/register', (req, res) => {
     try {
         const db = getDatabase();
 
-        db.run(
+        await db.query(
             `INSERT INTO students
             (full_name, student_id, email, password)
-            VALUES (?, ?, ?, ?)`,
+            VALUES ($1, $2, $3, $4)`,
             [
                 cleanName,
                 cleanStudentId,
@@ -123,20 +124,18 @@ app.post('/api/register', (req, res) => {
             ]
         );
 
-        saveDatabase();
-
         res.status(201).json({
             message: 'Student account created successfully!'
         });
 
     } catch (error) {
-        if (error.message.includes('UNIQUE')) {
+        if (error.code === '23505') {
             return res.status(409).json({
                 message: 'Student ID or email already exists.'
             });
         }
 
-        console.error(error);
+        console.error('Registration error:', error);
 
         res.status(500).json({
             message: 'Registration failed.'
@@ -145,7 +144,7 @@ app.post('/api/register', (req, res) => {
 });
 
 // LOGIN
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { student_id, password } = req.body;
 
     if (!student_id || !password) {
@@ -157,20 +156,20 @@ app.post('/api/login', (req, res) => {
     try {
         const db = getDatabase();
 
-        const result = db.exec(
-            'SELECT * FROM students WHERE student_id = ?',
+        const result = await db.query(
+            'SELECT * FROM students WHERE student_id = $1',
             [String(student_id).trim()]
         );
 
-        if (!result.length || !result[0].values.length) {
+        if (result.rows.length === 0) {
             return res.status(401).json({
                 message: 'Invalid Student ID or password.'
             });
         }
 
-        const student = result[0].values[0];
+        const student = result.rows[0];
 
-        if (!verifyPassword(password, student[4])) {
+        if (!verifyPassword(password, student.password)) {
             return res.status(401).json({
                 message: 'Invalid Student ID or password.'
             });
@@ -185,10 +184,10 @@ app.post('/api/login', (req, res) => {
             }
 
             req.session.student = {
-                id: student[0],
-                full_name: student[1],
-                student_id: student[2],
-                email: student[3]
+                id: student.id,
+                full_name: student.full_name,
+                student_id: student.student_id,
+                email: student.email
             };
 
             req.session.save((saveError) => {
@@ -207,7 +206,7 @@ app.post('/api/login', (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Login error:', error);
 
         res.status(500).json({
             message: 'Login failed.'
@@ -221,24 +220,20 @@ app.get('/api/student', requireLogin, (req, res) => {
 });
 
 // REGISTERED STUDENTS - NAMES ONLY
-app.get('/api/settings/students', requireLogin, (req, res) => {
+app.get('/api/settings/students', requireLogin, async (req, res) => {
     try {
         const db = getDatabase();
 
-        const result = db.exec(
-            'SELECT full_name FROM students ORDER BY full_name COLLATE NOCASE'
+        const result = await db.query(
+            'SELECT full_name FROM students ORDER BY LOWER(full_name)'
         );
 
-        const students = result.length
-            ? result[0].values.map(row => ({
-                full_name: row[0]
-            }))
-            : [];
-
-        res.json({ students });
+        res.json({
+            students: result.rows
+        });
 
     } catch (error) {
-        console.error(error);
+        console.error('Registered students error:', error);
 
         res.status(500).json({
             message: 'Unable to load registered students.'
@@ -247,7 +242,7 @@ app.get('/api/settings/students', requireLogin, (req, res) => {
 });
 
 // CHANGE FULL NAME
-app.put('/api/settings/profile', requireLogin, (req, res) => {
+app.put('/api/settings/profile', requireLogin, async (req, res) => {
     const fullName = String(req.body.full_name || '').trim();
 
     if (fullName.length < 2 || fullName.length > 100) {
@@ -259,12 +254,10 @@ app.put('/api/settings/profile', requireLogin, (req, res) => {
     try {
         const db = getDatabase();
 
-        db.run(
-            'UPDATE students SET full_name = ? WHERE id = ?',
+        await db.query(
+            'UPDATE students SET full_name = $1 WHERE id = $2',
             [fullName, req.session.student.id]
         );
-
-        saveDatabase();
 
         req.session.student.full_name = fullName;
 
@@ -283,7 +276,7 @@ app.put('/api/settings/profile', requireLogin, (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Profile update error:', error);
 
         res.status(500).json({
             message: 'Unable to update Full Name.'
@@ -292,7 +285,7 @@ app.put('/api/settings/profile', requireLogin, (req, res) => {
 });
 
 // CHANGE PASSWORD
-app.put('/api/settings/password', requireLogin, (req, res) => {
+app.put('/api/settings/password', requireLogin, async (req, res) => {
     const {
         current_password,
         new_password,
@@ -305,7 +298,7 @@ app.put('/api/settings/password', requireLogin, (req, res) => {
         });
     }
 
-    if (new_password.length < 8) {
+    if (String(new_password).length < 8) {
         return res.status(400).json({
             message: 'New password must be at least 8 characters.'
         });
@@ -326,18 +319,18 @@ app.put('/api/settings/password', requireLogin, (req, res) => {
     try {
         const db = getDatabase();
 
-        const result = db.exec(
-            'SELECT password FROM students WHERE id = ?',
+        const result = await db.query(
+            'SELECT password FROM students WHERE id = $1',
             [req.session.student.id]
         );
 
-        if (!result.length || !result[0].values.length) {
+        if (result.rows.length === 0) {
             return res.status(404).json({
                 message: 'Student account not found.'
             });
         }
 
-        const savedPassword = result[0].values[0][0];
+        const savedPassword = result.rows[0].password;
 
         if (!verifyPassword(current_password, savedPassword)) {
             return res.status(401).json({
@@ -345,22 +338,20 @@ app.put('/api/settings/password', requireLogin, (req, res) => {
             });
         }
 
-        db.run(
-            'UPDATE students SET password = ? WHERE id = ?',
+        await db.query(
+            'UPDATE students SET password = $1 WHERE id = $2',
             [
                 createPasswordHash(new_password),
                 req.session.student.id
             ]
         );
 
-        saveDatabase();
-
         res.json({
             message: 'Your password has been changed successfully.'
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Password update error:', error);
 
         res.status(500).json({
             message: 'Unable to change password.'
@@ -379,7 +370,7 @@ app.get('/api/settings/security', requireLogin, (req, res) => {
 });
 
 // SAVE QUIZ RESULT
-app.post('/api/quiz-results', requireLogin, (req, res) => {
+app.post('/api/quiz-results', requireLogin, async (req, res) => {
     const { score, total } = req.body;
 
     if (
@@ -398,10 +389,10 @@ app.post('/api/quiz-results', requireLogin, (req, res) => {
         const db = getDatabase();
         const percentage = Number(((score / total) * 100).toFixed(2));
 
-        db.run(
+        await db.query(
             `INSERT INTO quiz_results
             (student_id, score, total, percentage, date)
-            VALUES (?, ?, ?, ?, ?)`,
+            VALUES ($1, $2, $3, $4, $5)`,
             [
                 req.session.student.id,
                 score,
@@ -411,14 +402,12 @@ app.post('/api/quiz-results', requireLogin, (req, res) => {
             ]
         );
 
-        saveDatabase();
-
         res.status(201).json({
             message: 'Quiz result saved successfully!'
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Quiz result error:', error);
 
         res.status(500).json({
             message: 'Unable to save quiz result.'
@@ -427,7 +416,7 @@ app.post('/api/quiz-results', requireLogin, (req, res) => {
 });
 
 // SAVE EXAM RESULT
-app.post('/api/exam-results', requireLogin, (req, res) => {
+app.post('/api/exam-results', requireLogin, async (req, res) => {
     const { score, total } = req.body;
 
     if (
@@ -446,10 +435,10 @@ app.post('/api/exam-results', requireLogin, (req, res) => {
         const db = getDatabase();
         const percentage = Number(((score / total) * 100).toFixed(2));
 
-        db.run(
+        await db.query(
             `INSERT INTO exam_results
             (student_id, score, total, percentage, date)
-            VALUES (?, ?, ?, ?, ?)`,
+            VALUES ($1, $2, $3, $4, $5)`,
             [
                 req.session.student.id,
                 score,
@@ -459,14 +448,12 @@ app.post('/api/exam-results', requireLogin, (req, res) => {
             ]
         );
 
-        saveDatabase();
-
         res.status(201).json({
             message: 'Examination result saved successfully!'
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Exam result error:', error);
 
         res.status(500).json({
             message: 'Unable to save examination result.'
@@ -475,64 +462,50 @@ app.post('/api/exam-results', requireLogin, (req, res) => {
 });
 
 // GET MY RESULTS
-app.get('/api/results', requireLogin, (req, res) => {
+app.get('/api/results', requireLogin, async (req, res) => {
     try {
         const db = getDatabase();
         const studentId = req.session.student.id;
 
-        const quizData = db.exec(
+        const quizData = await db.query(
             `SELECT
                 quiz_results.id,
-                students.full_name AS studentName,
-                students.student_id AS studentId,
+                students.full_name AS "studentName",
+                students.student_id AS "studentId",
                 quiz_results.score,
                 quiz_results.total,
                 quiz_results.percentage,
                 quiz_results.date
              FROM quiz_results
              JOIN students ON quiz_results.student_id = students.id
-             WHERE quiz_results.student_id = ?
+             WHERE quiz_results.student_id = $1
              ORDER BY quiz_results.id DESC`,
             [studentId]
         );
 
-        const examData = db.exec(
+        const examData = await db.query(
             `SELECT
                 exam_results.id,
-                students.full_name AS studentName,
-                students.student_id AS studentId,
+                students.full_name AS "studentName",
+                students.student_id AS "studentId",
                 exam_results.score,
                 exam_results.total,
                 exam_results.percentage,
                 exam_results.date
              FROM exam_results
              JOIN students ON exam_results.student_id = students.id
-             WHERE exam_results.student_id = ?
+             WHERE exam_results.student_id = $1
              ORDER BY exam_results.id DESC`,
             [studentId]
         );
 
-        function convertResults(data) {
-            if (!data.length) return [];
-
-            return data[0].values.map(row => {
-                const record = {};
-
-                data[0].columns.forEach((column, index) => {
-                    record[column] = row[index];
-                });
-
-                return record;
-            });
-        }
-
         res.json({
-            quizResults: convertResults(quizData),
-            examResults: convertResults(examData)
+            quizResults: quizData.rows,
+            examResults: examData.rows
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Get results error:', error);
 
         res.status(500).json({
             message: 'Unable to load results.'
@@ -541,29 +514,27 @@ app.get('/api/results', requireLogin, (req, res) => {
 });
 
 // DELETE MY HISTORY ONLY
-app.delete('/api/results', requireLogin, (req, res) => {
+app.delete('/api/results', requireLogin, async (req, res) => {
     try {
         const db = getDatabase();
         const studentId = req.session.student.id;
 
-        db.run(
-            'DELETE FROM quiz_results WHERE student_id = ?',
+        await db.query(
+            'DELETE FROM quiz_results WHERE student_id = $1',
             [studentId]
         );
 
-        db.run(
-            'DELETE FROM exam_results WHERE student_id = ?',
+        await db.query(
+            'DELETE FROM exam_results WHERE student_id = $1',
             [studentId]
         );
-
-        saveDatabase();
 
         res.json({
             message: 'Your Quiz and Examination history has been deleted.'
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Delete history error:', error);
 
         res.status(500).json({
             message: 'Unable to delete history.'
@@ -605,9 +576,10 @@ app.post('/api/logout', (req, res) => {
 initializeDatabase()
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+            console.log(`Server running at http://localhost:${PORT}`);
+        });
     })
     .catch(error => {
         console.error('Database error:', error);
+        process.exit(1);
     });
