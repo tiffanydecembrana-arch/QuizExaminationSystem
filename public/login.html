@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Login</title>
+    <title>Account Login</title>
 
     <style>
         * {
@@ -24,7 +24,7 @@
 
         .login-container {
             background: white;
-            width: 350px;
+            width: 380px;
             max-width: 100%;
             padding: 35px;
             border-radius: 15px;
@@ -42,18 +42,30 @@
             color: #64748b;
         }
 
-        input {
+        input,
+        select {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
             border: 1px solid #cbd5e1;
             border-radius: 7px;
             outline: none;
+            background: white;
+            font-size: 14px;
         }
 
-        input:focus {
+        input:focus,
+        select:focus {
             border-color: #16834A;
             box-shadow: 0 0 0 2px #16834A20;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            color: #0B5D35;
+            font-weight: bold;
+            font-size: 14px;
         }
 
         button {
@@ -66,10 +78,16 @@
             border-radius: 7px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 15px;
         }
 
         button:hover {
             background: #0B5D35;
+        }
+
+        button:disabled {
+            background: #83b99b;
+            cursor: not-allowed;
         }
 
         a {
@@ -88,6 +106,13 @@
             text-align: center;
             margin-top: 20px;
         }
+
+        #message {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-top: 12px;
+            overflow-wrap: break-word;
+        }
     </style>
 </head>
 
@@ -95,71 +120,253 @@
 
     <div class="login-container">
 
-        <h2>Student Login</h2>
-        <p>Welcome back, Student!</p>
+        <h2>Account Login</h2>
+        <p id="welcomeMessage">Welcome back, Student!</p>
 
         <form id="loginForm">
 
-            <input
-                type="text"
-                name="student_id"
-                placeholder="Student ID"
-                required
-            >
+            <label for="role">Account Type</label>
+
+            <select name="role" id="role" required>
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+            </select>
+
+            <div id="studentField">
+
+                <label for="student_id">Student ID</label>
+
+                <input
+                    type="text"
+                    id="student_id"
+                    name="student_id"
+                    placeholder="Enter your Student ID"
+                    autocomplete="username"
+                    required
+                >
+
+            </div>
+
+            <div id="teacherField" style="display: none;">
+
+                <label for="full_name">Full Name</label>
+
+                <input
+                    type="text"
+                    id="full_name"
+                    name="full_name"
+                    placeholder="Enter your registered Full Name"
+                    autocomplete="username"
+                    disabled
+                >
+
+            </div>
+
+            <label for="password">Password</label>
 
             <input
                 type="password"
+                id="password"
                 name="password"
-                placeholder="Password"
+                placeholder="Enter your Password"
+                autocomplete="current-password"
                 required
             >
 
-            <button type="submit">Login</button>
+            <button type="submit" id="loginButton">
+                Login as Student
+            </button>
 
-            <p id="message"></p>
+            <p id="message" role="status"></p>
 
         </form>
 
-        <p>Don't have an account? <a href="register.html">Register</a></p>
+        <p>
+            Don't have an account?
+            <a href="register.html">Register</a>
+        </p>
 
         <a href="index.html" class="back">Back to Home</a>
 
     </div>
 
-<script>
-    const loginForm = document.getElementById('loginForm');
-    const message = document.getElementById('message');
+    <script>
+        // =====================================
+        // GET HTML ELEMENTS
+        // =====================================
 
-    loginForm.addEventListener('submit', async function(event) {
-        event.preventDefault();
+        const loginForm = document.getElementById('loginForm');
+        const roleSelect = document.getElementById('role');
 
-        const formData = new FormData(loginForm);
-        const studentData = Object.fromEntries(formData.entries());
+        const studentField = document.getElementById('studentField');
+        const teacherField = document.getElementById('teacherField');
 
-        try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(studentData)
-            });
+        const studentIdInput = document.getElementById('student_id');
+        const fullNameInput = document.getElementById('full_name');
 
-            const result = await response.json();
+        const passwordInput = document.getElementById('password');
 
-            message.textContent = result.message;
-            message.style.color = response.ok ? 'green' : 'red';
+        const loginButton = document.getElementById('loginButton');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const message = document.getElementById('message');
 
-            if (response.ok) {
-                window.location.href = result.redirect;
+
+        // =====================================
+        // CHANGE FIELDS BASED ON ACCOUNT TYPE
+        // =====================================
+
+        function updateLoginFields() {
+
+            const selectedRole = roleSelect.value;
+
+            message.textContent = '';
+
+            if (selectedRole === 'teacher') {
+
+                studentField.style.display = 'none';
+                teacherField.style.display = 'block';
+
+                studentIdInput.disabled = true;
+                studentIdInput.required = false;
+
+                fullNameInput.disabled = false;
+                fullNameInput.required = true;
+
+                loginButton.textContent = 'Login as Teacher';
+                welcomeMessage.textContent = 'Welcome back, Teacher!';
+
+            } else {
+
+                studentField.style.display = 'block';
+                teacherField.style.display = 'none';
+
+                studentIdInput.disabled = false;
+                studentIdInput.required = true;
+
+                fullNameInput.disabled = true;
+                fullNameInput.required = false;
+
+                loginButton.textContent = 'Login as Student';
+                welcomeMessage.textContent = 'Welcome back, Student!';
+
+            }
+        }
+
+        roleSelect.addEventListener('change', updateLoginFields);
+
+
+        // =====================================
+        // LOGIN
+        // =====================================
+
+        loginForm.addEventListener('submit', async function(event) {
+
+            event.preventDefault();
+
+            message.textContent = 'Connecting to server...';
+            message.style.color = '#64748b';
+
+            loginButton.disabled = true;
+
+            const accountData = {
+                role: roleSelect.value,
+                password: passwordInput.value
+            };
+
+            if (roleSelect.value === 'teacher') {
+
+                accountData.full_name = fullNameInput.value.trim();
+
+            } else {
+
+                accountData.student_id = studentIdInput.value.trim();
+
             }
 
-        } catch (error) {
-            message.textContent = 'Unable to connect to server.';
-            message.style.color = 'red';
-        }
-    });
-</script>
+            try {
+
+                const response = await fetch('/api/login', {
+
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+
+                    credentials: 'same-origin',
+
+                    body: JSON.stringify(accountData)
+
+                });
+
+                console.log('Login API status:', response.status);
+
+                const responseText = await response.text();
+
+                let result;
+
+                try {
+
+                    result = JSON.parse(responseText);
+
+                } catch (parseError) {
+
+                    console.error('Invalid server response:', responseText);
+
+                    throw new Error(
+                        'The server returned an invalid response. HTTP status: ' +
+                        response.status
+                    );
+
+                }
+
+                message.textContent = result.message ||
+                    'The server did not provide a response message.';
+
+                message.style.color = response.ok ? 'green' : 'red';
+
+                if (response.ok) {
+
+                    window.location.href =
+                        result.redirect || 'dashboard.html';
+
+                    return;
+
+                }
+
+            } catch (error) {
+
+                console.error('Login error:', error);
+
+                if (error instanceof TypeError) {
+
+                    message.textContent =
+                        'Unable to reach the server. Check your server connection and page address.';
+
+                } else {
+
+                    message.textContent = error.message;
+
+                }
+
+                message.style.color = 'red';
+
+            } finally {
+
+                loginButton.disabled = false;
+
+            }
+
+        });
+
+
+        // =====================================
+        // INITIAL SETUP
+        // =====================================
+
+        updateLoginFields();
+
+    </script>
 
 </body>
 </html>

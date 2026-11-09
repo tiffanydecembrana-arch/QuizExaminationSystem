@@ -73,6 +73,7 @@
         .result-card p {
             margin: 9px 0;
             line-height: 1.5;
+            overflow-wrap: anywhere;
         }
 
         .score {
@@ -171,7 +172,7 @@
 
 <header>
     <h1>My Results</h1>
-    <p>View your Online Quiz and Examination records.</p>
+    <p>View your Online Quiz, Examination, and Teacher-Created Material records.</p>
 </header>
 
 <div class="container">
@@ -192,6 +193,18 @@
 
     <div id="examResults">
         <p class="status">Loading examination results...</p>
+    </div>
+
+    <h2>Teacher-Created Quiz Results</h2>
+
+    <div id="materialQuizResults">
+        <p class="status">Loading teacher-created quiz results...</p>
+    </div>
+
+    <h2>Teacher-Created Examination Results</h2>
+
+    <div id="materialExamResults">
+        <p class="status">Loading teacher-created examination results...</p>
     </div>
 
     <div class="buttons">
@@ -220,9 +233,19 @@ const quizResultsContainer =
 const examResultsContainer =
     document.getElementById("examResults");
 
+const materialQuizResultsContainer =
+    document.getElementById("materialQuizResults");
+
+const materialExamResultsContainer =
+    document.getElementById("materialExamResults");
+
 const deleteButton =
     document.getElementById("deleteHistory");
 
+
+// =====================================
+// ESCAPE HTML
+// =====================================
 
 function escapeHTML(value) {
 
@@ -241,6 +264,10 @@ function escapeHTML(value) {
 }
 
 
+// =====================================
+// FORMAT DATE
+// =====================================
+
 function formatDate(dateValue) {
 
     if (!dateValue) {
@@ -258,6 +285,10 @@ function formatDate(dateValue) {
 }
 
 
+// =====================================
+// DISPLAY REGULAR RESULTS
+// =====================================
+
 function displayResults(results, container, title) {
 
     if (!Array.isArray(results) || results.length === 0) {
@@ -273,21 +304,25 @@ function displayResults(results, container, title) {
 
     container.innerHTML = results.map((record, index) => {
 
-        const percentage = Number(record.percentage).toFixed(2);
+        const percentage = Number(record.percentage);
+
+        const percentageText = Number.isFinite(percentage)
+            ? percentage.toFixed(2)
+            : "0.00";
 
         return `
             <div class="result-card">
 
-                <h3>${title} #${index + 1}</h3>
+                <h3>${escapeHTML(title)} #${index + 1}</h3>
 
                 <p>
                     <strong>Student Name:</strong>
-                    ${escapeHTML(record.full_name)}
+                    ${escapeHTML(record.full_name || record.studentName)}
                 </p>
 
                 <p>
                     <strong>Student ID:</strong>
-                    ${escapeHTML(record.student_id)}
+                    ${escapeHTML(record.student_id || record.studentId)}
                 </p>
 
                 <p class="score">
@@ -297,7 +332,7 @@ function displayResults(results, container, title) {
 
                 <p>
                     <strong>Percentage:</strong>
-                    ${escapeHTML(percentage)}%
+                    ${percentageText}%
                 </p>
 
                 <p>
@@ -312,6 +347,99 @@ function displayResults(results, container, title) {
 
 }
 
+
+// =====================================
+// DISPLAY TEACHER-CREATED RESULTS
+// =====================================
+
+function displayMaterialResults(results, container, type) {
+
+    if (!Array.isArray(results) || results.length === 0) {
+
+        container.innerHTML = `
+            <div class="empty-message">
+                <p>No teacher-created ${type} results yet.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+    const filteredResults = results.filter(record => {
+
+        const materialType = String(
+            record.materialType || record.material_type || ""
+        ).toLowerCase();
+
+        return materialType === type;
+
+    });
+
+    if (filteredResults.length === 0) {
+
+        container.innerHTML = `
+            <div class="empty-message">
+                <p>No teacher-created ${type} results yet.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = filteredResults.map((record, index) => {
+
+        const percentage = Number(record.percentage);
+
+        const percentageText = Number.isFinite(percentage)
+            ? percentage.toFixed(2)
+            : "0.00";
+
+        return `
+            <div class="result-card">
+
+                <h3>${escapeHTML(record.materialTitle || "Teacher-Created Material")}</h3>
+
+                <p>
+                    <strong>Attempt:</strong>
+                    ${index + 1}
+                </p>
+
+                <p>
+                    <strong>Student Name:</strong>
+                    ${escapeHTML(record.studentName || record.full_name)}
+                </p>
+
+                <p>
+                    <strong>Student ID:</strong>
+                    ${escapeHTML(record.studentId || record.student_id)}
+                </p>
+
+                <p class="score">
+                    Score: ${escapeHTML(record.score)}
+                    / ${escapeHTML(record.total)}
+                </p>
+
+                <p>
+                    <strong>Percentage:</strong>
+                    ${percentageText}%
+                </p>
+
+                <p>
+                    <strong>Date:</strong>
+                    ${formatDate(record.date)}
+                </p>
+
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+// =====================================
+// LOAD RESULTS
+// =====================================
 
 async function loadResults() {
 
@@ -351,11 +479,17 @@ async function loadResults() {
 
         const data = await response.json();
 
+
+        // REGULAR QUIZ
+
         displayResults(
             data.quizResults,
             quizResultsContainer,
             "Quiz"
         );
+
+
+        // REGULAR EXAMINATION
 
         displayResults(
             data.examResults,
@@ -363,20 +497,39 @@ async function loadResults() {
             "Examination"
         );
 
+
+        // TEACHER-CREATED MATERIALS
+
+        displayMaterialResults(
+            data.materialResults,
+            materialQuizResultsContainer,
+            "quiz"
+        );
+
+        displayMaterialResults(
+            data.materialResults,
+            materialExamResultsContainer,
+            "exam"
+        );
+
     } catch (error) {
 
         console.error("Results loading error:", error);
 
         quizResultsContainer.innerHTML = `
-            <p class="status">
-                Unable to load quiz results.
-            </p>
+            <p class="status">Unable to load quiz results.</p>
         `;
 
         examResultsContainer.innerHTML = `
-            <p class="status">
-                Unable to load examination results.
-            </p>
+            <p class="status">Unable to load examination results.</p>
+        `;
+
+        materialQuizResultsContainer.innerHTML = `
+            <p class="status">Unable to load teacher-created quiz results.</p>
+        `;
+
+        materialExamResultsContainer.innerHTML = `
+            <p class="status">Unable to load teacher-created examination results.</p>
         `;
 
         alert(error.message);
@@ -386,12 +539,14 @@ async function loadResults() {
 }
 
 
-// DELETE ONLY THE LOGGED-IN STUDENT'S HISTORY
+// =====================================
+// DELETE ALL STUDENT HISTORY
+// =====================================
 
 deleteButton.addEventListener("click", async function() {
 
     const confirmed = confirm(
-        "Are you sure you want to delete all your Quiz and Examination history? This action cannot be undone."
+        "Are you sure you want to delete all your Quiz, Examination, and Teacher-Created Material history? This action cannot be undone."
     );
 
     if (!confirmed) {
@@ -399,6 +554,7 @@ deleteButton.addEventListener("click", async function() {
     }
 
     deleteButton.disabled = true;
+    deleteButton.textContent = "Deleting...";
 
     try {
 
@@ -416,7 +572,7 @@ deleteButton.addEventListener("click", async function() {
         }
 
         alert(
-            "Your Quiz and Examination history has been deleted successfully!"
+            "Your Quiz, Examination, and Teacher-Created Material history has been deleted successfully!"
         );
 
         await loadResults();
@@ -430,11 +586,16 @@ deleteButton.addEventListener("click", async function() {
     } finally {
 
         deleteButton.disabled = false;
+        deleteButton.textContent = "Delete All My History";
 
     }
 
 });
 
+
+// =====================================
+// INITIALIZE
+// =====================================
 
 loadResults();
 

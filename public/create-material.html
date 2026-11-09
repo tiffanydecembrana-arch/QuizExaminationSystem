@@ -1,0 +1,886 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Learning Material</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #EAF7EF;
+            color: #334155;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 11px 17px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #16834A;
+            color: white;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .back-button {
+            background: white;
+            color: #16834A;
+        }
+
+        .back-button:hover {
+            background: #EAF7EF;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        h2, h3 {
+            color: #0B5D35;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 14px 0 7px;
+            font-weight: bold;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        #bulkQuestions {
+            min-height: 430px;
+            font-family: Consolas, monospace;
+            line-height: 1.7;
+            background: #fcfffd;
+            white-space: pre-wrap;
+        }
+
+        .hint {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .format-box {
+            background: #EAF7EF;
+            padding: 16px;
+            border-radius: 9px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .format-box pre {
+            font-family: Consolas, monospace;
+            white-space: pre-wrap;
+            margin: 0;
+            line-height: 1.7;
+            color: #0B5D35;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .preview-button {
+            background: #2563eb;
+        }
+
+        .preview-button:hover {
+            background: #1d4ed8;
+        }
+
+        .draft-button {
+            background: #64748b;
+        }
+
+        .draft-button:hover {
+            background: #475569;
+        }
+
+        .publish-button {
+            background: #16834A;
+        }
+
+        .item-preview {
+            background: #EAF7EF;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            overflow-wrap: anywhere;
+            border-left: 5px solid #16834A;
+        }
+
+        .item-preview p {
+            margin: 7px 0;
+        }
+
+        .correct-answer {
+            color: #16834A;
+            font-weight: bold;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .option-row input[type="radio"] {
+            width: auto;
+        }
+
+        .remove-button {
+            background: #dc2626;
+            margin-top: 12px;
+        }
+
+        .remove-button:hover {
+            background: #991b1b;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .container {
+                padding: 12px;
+                margin: 15px auto;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+
+            .actions button {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1 id="pageTitle">Create Learning Material</h1>
+
+    <button class="back-button"
+            onclick="window.location.href='dashboard.html'">
+        Back to Dashboard
+    </button>
+</header>
+
+<div class="container">
+
+    <!-- MATERIAL INFORMATION -->
+    <div class="panel">
+
+        <h2>Material Information</h2>
+
+        <label for="materialTitle">Quiz / Examination Title *</label>
+
+        <input
+            type="text"
+            id="materialTitle"
+            maxlength="150"
+            placeholder="Example: Introduction to Programming Quiz"
+        >
+
+        <label for="materialDescription">Description</label>
+
+        <textarea
+            id="materialDescription"
+            maxlength="1000"
+            placeholder="Enter a short description"
+        ></textarea>
+
+        <p class="hint" id="typeDescription"></p>
+
+    </div>
+
+    <!-- QUIZ AND EXAM NOTEPAD EDITOR -->
+    <div class="panel" id="bulkEditor">
+
+        <h2 id="editorTitle">Questions and Answers</h2>
+
+        <p class="hint">
+            Type or paste all your questions, choices, and correct answers
+            in the text editor below. Follow the format carefully.
+        </p>
+
+        <div class="format-box">
+
+            <strong>Required Format Example:</strong>
+
+<pre>Q: What does CPU stand for?
+A: Central Processing Unit
+B: Computer Personal Unit
+C: Central Program Utility
+D: Control Processing User
+Answer: A
+
+Q: Which one is an operating system?
+A: HTML
+B: Windows
+C: CSS
+D: SQL
+Answer: B</pre>
+
+        </div>
+
+        <p class="hint">
+            Instructions:
+            <br>• Start every question with Q:
+            <br>• Use A:, B:, C:, and D: for the four choices.
+            <br>• Use Answer: followed by A, B, C, or D.
+            <br>• Leave a blank line between questions for easier reading.
+            <br>• You can create up to 100 questions.
+        </p>
+
+        <label for="bulkQuestions">
+            Type All Questions and Answers Here *
+        </label>
+
+        <textarea
+            id="bulkQuestions"
+            placeholder="Q: Type your first question here...
+
+A: First choice
+B: Second choice
+C: Third choice
+D: Fourth choice
+Answer: A
+
+Q: Type your second question here...
+
+A: First choice
+B: Second choice
+C: Third choice
+D: Fourth choice
+Answer: B"
+            spellcheck="false"
+        ></textarea>
+
+        <div class="actions">
+
+            <button class="preview-button" id="previewButton"
+                    onclick="previewQuestions()">
+                Preview Questions
+            </button>
+
+            <button class="draft-button"
+                    onclick="clearEditor()">
+                Clear Editor
+            </button>
+
+        </div>
+
+        <p class="hint" id="previewStatus">
+            Preview your questions before saving or publishing.
+        </p>
+
+    </div>
+
+    <!-- FLASHCARD EDITOR -->
+    <div class="panel hidden" id="flashcardEditor">
+
+        <h2>Add Flashcards</h2>
+
+        <label for="flashcardTerm">Front / Term / Question</label>
+
+        <textarea
+            id="flashcardTerm"
+            placeholder="Enter the term or question"
+        ></textarea>
+
+        <label for="flashcardAnswer">Back / Answer / Explanation</label>
+
+        <textarea
+            id="flashcardAnswer"
+            placeholder="Enter the answer or explanation"
+        ></textarea>
+
+        <button onclick="addFlashcard()">
+            Add Flashcard
+        </button>
+
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="panel">
+
+        <h2>Preview</h2>
+
+        <p class="hint">
+            Check your questions and correct answers before publishing.
+        </p>
+
+        <h3>
+            Added Items (<span id="itemCount">0</span>)
+        </h3>
+
+        <div id="itemList">
+            <p class="hint">No items added yet.</p>
+        </div>
+
+    </div>
+
+    <!-- SAVE -->
+    <div class="panel">
+
+        <h2>Save Material</h2>
+
+        <p class="hint">
+            Save as Draft if you are not ready to share it.
+            Publish to make it available to other users.
+        </p>
+
+        <div class="actions">
+
+            <button class="draft-button"
+                    onclick="saveMaterial('draft')">
+                Save Draft
+            </button>
+
+            <button class="publish-button"
+                    onclick="saveMaterial('published')">
+                Publish
+            </button>
+
+        </div>
+
+        <p id="message"></p>
+
+    </div>
+
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+
+    let materialType = params.get('type') || 'quiz';
+
+    if (!['quiz', 'exam', 'flashcard'].includes(materialType)) {
+        materialType = 'quiz';
+    }
+
+    let items = [];
+    let previewedText = '';
+
+    const pageTitle = document.getElementById('pageTitle');
+    const editorTitle = document.getElementById('editorTitle');
+    const typeDescription = document.getElementById('typeDescription');
+
+    const bulkEditor = document.getElementById('bulkEditor');
+    const flashcardEditor = document.getElementById('flashcardEditor');
+
+    const bulkQuestions = document.getElementById('bulkQuestions');
+    const itemList = document.getElementById('itemList');
+    const itemCount = document.getElementById('itemCount');
+    const message = document.getElementById('message');
+
+    const typeSettings = {
+        quiz: {
+            title: 'Create Online Quiz',
+            description: 'Create a multiple-choice quiz using the Notepad-style editor.',
+            itemTitle: 'Quiz Questions'
+        },
+
+        exam: {
+            title: 'Create Online Examination',
+            description: 'Create a multiple-choice examination using the Notepad-style editor.',
+            itemTitle: 'Examination Questions'
+        },
+
+        flashcard: {
+            title: 'Create Flashcard Review',
+            description: 'Create flashcards with a front and back answer.',
+            itemTitle: 'Flashcard Editor'
+        }
+    };
+
+    const settings = typeSettings[materialType];
+
+    pageTitle.textContent = settings.title;
+    document.title = settings.title;
+    editorTitle.textContent = settings.itemTitle;
+    typeDescription.textContent = settings.description;
+
+    if (materialType === 'flashcard') {
+        bulkEditor.classList.add('hidden');
+        flashcardEditor.classList.remove('hidden');
+    }
+
+    // RESET PREVIEW WHEN THE USER CHANGES THE TEXT
+    bulkQuestions.addEventListener('input', function() {
+        items = [];
+        previewedText = '';
+
+        renderItems();
+
+        document.getElementById('previewStatus').textContent =
+            'Your text has changed. Click Preview Questions again.';
+    });
+
+    // PARSE QUESTIONS FROM NOTEPAD TEXT
+    function parseQuestions(rawText) {
+
+        const blocks = rawText
+            .split(/\n(?=\s*(?:Q|Question)\s*:)/i)
+            .map(block => block.trim())
+            .filter(block => block.length > 0);
+
+        if (blocks.length === 0) {
+            throw new Error('Please enter at least one question.');
+        }
+
+        const parsedItems = [];
+
+        blocks.forEach((block, index) => {
+
+            const lines = block
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            let question = '';
+            let options = ['', '', '', ''];
+            let correctAnswer = null;
+            let currentOption = -1;
+
+            lines.forEach(line => {
+
+                const questionMatch = line.match(
+                    /^(?:Q|Question)\s*:\s*(.*)$/i
+                );
+
+                const optionMatch = line.match(
+                    /^([A-D])\s*:\s*(.*)$/i
+                );
+
+                const answerMatch = line.match(
+                    /^(?:Answer|Correct Answer)\s*:\s*(.*)$/i
+                );
+
+                if (questionMatch) {
+
+                    if (question) {
+                        question += ' ' + questionMatch[1].trim();
+                    } else {
+                        question = questionMatch[1].trim();
+                    }
+
+                    currentOption = -1;
+
+                } else if (optionMatch) {
+
+                    const optionIndex =
+                        optionMatch[1].toUpperCase().charCodeAt(0) - 65;
+
+                    options[optionIndex] = optionMatch[2].trim();
+                    currentOption = optionIndex;
+
+                } else if (answerMatch) {
+
+                    const answerValue = answerMatch[1]
+                        .trim()
+                        .toUpperCase();
+
+                    if (['A', 'B', 'C', 'D'].includes(answerValue)) {
+                        correctAnswer = answerValue.charCodeAt(0) - 65;
+                    } else if (['1', '2', '3', '4'].includes(answerValue)) {
+                        correctAnswer = Number(answerValue) - 1;
+                    } else {
+                        correctAnswer = -1;
+                    }
+
+                    currentOption = -1;
+
+                } else {
+
+                    if (currentOption !== -1) {
+                        options[currentOption] +=
+                            (options[currentOption] ? ' ' : '') + line;
+                    } else if (question) {
+                        question += ' ' + line;
+                    }
+
+                }
+
+            });
+
+            if (!question) {
+                throw new Error(
+                    'Question ' + (index + 1) + ': Missing Q: question.'
+                );
+            }
+
+            if (options.some(option => !option.trim())) {
+                throw new Error(
+                    'Question ' + (index + 1) +
+                    ': Please complete choices A, B, C, and D.'
+                );
+            }
+
+            if (
+                correctAnswer === null ||
+                correctAnswer < 0 ||
+                correctAnswer > 3
+            ) {
+                throw new Error(
+                    'Question ' + (index + 1) +
+                    ': Invalid or missing Answer. Use A, B, C, or D.'
+                );
+            }
+
+            parsedItems.push({
+                question: question,
+                options: options,
+                correctAnswer: correctAnswer
+            });
+
+        });
+
+        if (parsedItems.length > 100) {
+            throw new Error('You can only create up to 100 questions.');
+        }
+
+        return parsedItems;
+    }
+
+    // PREVIEW QUESTIONS
+    function previewQuestions() {
+
+        const rawText = bulkQuestions.value;
+
+        try {
+
+            if (!rawText.trim()) {
+                throw new Error('Please type your questions first.');
+            }
+
+            items = parseQuestions(rawText);
+            previewedText = rawText;
+
+            renderItems();
+
+            document.getElementById('previewStatus').textContent =
+                items.length + ' question(s) successfully loaded. You can now save or publish.';
+
+            message.textContent = '';
+
+            alert(
+                'Preview successful! ' +
+                items.length +
+                ' question(s) detected.'
+            );
+
+        } catch (error) {
+
+            items = [];
+            previewedText = '';
+
+            renderItems();
+
+            document.getElementById('previewStatus').textContent =
+                'Please correct the formatting errors.';
+
+            alert(error.message);
+
+        }
+    }
+
+    // ADD FLASHCARD
+    function addFlashcard() {
+
+        const term = document.getElementById('flashcardTerm')
+            .value.trim();
+
+        const answer = document.getElementById('flashcardAnswer')
+            .value.trim();
+
+        if (!term || !answer) {
+            alert('Please enter both the front and back of the flashcard.');
+            return;
+        }
+
+        if (items.length >= 100) {
+            alert('You can only add up to 100 flashcards.');
+            return;
+        }
+
+        items.push({
+            term: term,
+            answer: answer
+        });
+
+        document.getElementById('flashcardTerm').value = '';
+        document.getElementById('flashcardAnswer').value = '';
+
+        renderItems();
+    }
+
+    // CLEAR EDITOR
+    function clearEditor() {
+
+        const confirmed = confirm(
+            'Are you sure you want to clear all questions in the editor?'
+        );
+
+        if (!confirmed) return;
+
+        bulkQuestions.value = '';
+        items = [];
+        previewedText = '';
+
+        renderItems();
+
+        document.getElementById('previewStatus').textContent =
+            'Editor cleared.';
+
+        message.textContent = '';
+    }
+
+    // DISPLAY PREVIEW ITEMS
+    function renderItems() {
+
+        itemCount.textContent = items.length;
+        itemList.innerHTML = '';
+
+        if (items.length === 0) {
+            itemList.innerHTML =
+                '<p class="hint">No items added yet.</p>';
+            return;
+        }
+
+        items.forEach((item, index) => {
+
+            const box = document.createElement('div');
+            box.className = 'item-preview';
+
+            const heading = document.createElement('strong');
+
+            if (materialType === 'flashcard') {
+                heading.textContent = 'Flashcard ' + (index + 1);
+            } else {
+                heading.textContent = 'Question ' + (index + 1);
+            }
+
+            box.appendChild(heading);
+
+            if (materialType === 'flashcard') {
+
+                const front = document.createElement('p');
+                front.textContent = 'Front: ' + item.term;
+
+                const back = document.createElement('p');
+                back.textContent = 'Back: ' + item.answer;
+
+                box.appendChild(front);
+                box.appendChild(back);
+
+            } else {
+
+                const question = document.createElement('p');
+                question.textContent = item.question;
+
+                box.appendChild(question);
+
+                item.options.forEach((option, optionIndex) => {
+
+                    const choice = document.createElement('p');
+
+                    const letter = ['A', 'B', 'C', 'D'][optionIndex];
+
+                    choice.textContent =
+                        letter + '. ' + option +
+                        (optionIndex === item.correctAnswer
+                            ? ' (Correct Answer)'
+                            : '');
+
+                    if (optionIndex === item.correctAnswer) {
+                        choice.className = 'correct-answer';
+                    }
+
+                    box.appendChild(choice);
+
+                });
+
+            }
+
+            itemList.appendChild(box);
+
+        });
+    }
+
+    // SAVE OR PUBLISH MATERIAL
+    async function saveMaterial(status) {
+
+        const title = document.getElementById('materialTitle')
+            .value.trim();
+
+        const description = document.getElementById('materialDescription')
+            .value.trim();
+
+        if (title.length < 2) {
+            alert('Please enter a valid material title.');
+            return;
+        }
+
+        if (materialType !== 'flashcard') {
+
+            if (!bulkQuestions.value.trim()) {
+                alert('Please enter your questions first.');
+                return;
+            }
+
+            if (previewedText !== bulkQuestions.value) {
+                alert(
+                    'Please click Preview Questions again before saving.'
+                );
+                return;
+            }
+
+        }
+
+        if (items.length === 0) {
+            alert('Please add at least one question or flashcard.');
+            return;
+        }
+
+        if (items.length > 100) {
+            alert('You can only add up to 100 items.');
+            return;
+        }
+
+        const payload = {
+            title: title,
+            description: description,
+            material_type: materialType,
+            status: status,
+            questions: items
+        };
+
+        message.textContent = 'Saving material...';
+
+        const buttons = document.querySelectorAll(
+            '.actions button, .panel button'
+        );
+
+        buttons.forEach(button => button.disabled = true);
+
+        try {
+
+            const response = await fetch('/api/materials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || 'Unable to save material.'
+                );
+            }
+
+            message.textContent =
+                status === 'published'
+                    ? 'Material published successfully!'
+                    : 'Material saved as draft successfully!';
+
+            alert(message.textContent);
+
+            window.location.href = 'manage-materials.html';
+
+        } catch (error) {
+
+            message.textContent = error.message;
+            alert(error.message);
+
+        } finally {
+
+            buttons.forEach(button => button.disabled = false);
+
+        }
+    }
+
+    renderItems();
+
+</script>
+
+</body>
+</html>

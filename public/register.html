@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Registration</title>
+    <title>Account Registration</title>
 
     <style>
         * {
@@ -35,6 +35,7 @@
         h2 {
             color: #0B5D35;
             text-align: center;
+            margin-top: 0;
         }
 
         p {
@@ -42,16 +43,17 @@
             color: #64748b;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
             margin: 8px 0;
             border: 1px solid #cbd5e1;
             border-radius: 7px;
             outline: none;
+            background: white;
         }
 
-        input:focus {
+        input:focus, select:focus {
             border-color: #16834A;
             box-shadow: 0 0 0 2px #16834A20;
         }
@@ -72,6 +74,11 @@
             background: #0B5D35;
         }
 
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
         a {
             color: #16834A;
             text-decoration: none;
@@ -82,54 +89,189 @@
             color: #0B5D35;
             text-decoration: underline;
         }
+
+        .field-label {
+            display: block;
+            margin-top: 12px;
+            color: #0B5D35;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        #message {
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
     </style>
 </head>
 
 <body>
 
-    <div class="register-container">
+<div class="register-container">
 
-        <h2>Student Registration</h2>
-        <p>Create your student account</p>
+    <h2>Create Account</h2>
+    <p>Register as a Student or Teacher</p>
 
-        <form id="registerForm">
+    <form id="registerForm">
 
-            <input type="text" name="full_name"
-                placeholder="Full Name" required>
+        <label class="field-label" for="role">
+            Account Type
+        </label>
 
-            <input type="text" name="student_id"
-                placeholder="Student ID" required>
+        <select name="role" id="role" required>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+        </select>
 
-            <input type="email" name="email"
-                placeholder="Email Address" required>
+        <label class="field-label" for="full_name">
+            Full Name
+        </label>
 
-            <input type="password" name="password"
-                placeholder="Password" minlength="8" required>
+        <input
+            type="text"
+            name="full_name"
+            id="full_name"
+            placeholder="Full Name"
+            minlength="2"
+            maxlength="100"
+            required
+        >
 
-            <input type="password" name="confirm_password"
-                placeholder="Confirm Password" minlength="8" required>
+        <div id="studentFields">
 
-            <button type="submit">Create Account</button>
+            <label class="field-label" for="student_id">
+                Student ID
+            </label>
 
-            <p id="message"></p>
+            <input
+                type="text"
+                name="student_id"
+                id="student_id"
+                placeholder="Student ID"
+                required
+            >
 
-        </form>
+        </div>
 
-        <p>Already have an account? <a href="login.html">Login</a></p>
+        <label class="field-label" for="password">
+            Password
+        </label>
 
-        <p><a href="index.html">Back to Home</a></p>
+        <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            minlength="8"
+            autocomplete="new-password"
+            required
+        >
 
-    </div>
+        <label class="field-label" for="confirm_password">
+            Confirm Password
+        </label>
+
+        <input
+            type="password"
+            name="confirm_password"
+            id="confirm_password"
+            placeholder="Confirm Password"
+            minlength="8"
+            autocomplete="new-password"
+            required
+        >
+
+        <button type="submit" id="registerButton">
+            Register as Student
+        </button>
+
+        <p id="message" role="status"></p>
+
+    </form>
+
+    <p>
+        Already have an account?
+        <a href="login.html">Login</a>
+    </p>
+
+    <p>
+        <a href="index.html">Back to Home</a>
+    </p>
+
+</div>
 
 <script>
     const form = document.getElementById('registerForm');
     const message = document.getElementById('message');
 
+    const roleSelect = document.getElementById('role');
+    const studentFields = document.getElementById('studentFields');
+    const studentIdInput = document.getElementById('student_id');
+
+    const registerButton = document.getElementById('registerButton');
+
+    // =====================================
+    // CHANGE FIELDS BASED ON ACCOUNT TYPE
+    // =====================================
+
+    function updateRegistrationFields() {
+        const selectedRole = roleSelect.value;
+
+        message.textContent = '';
+
+        if (selectedRole === 'teacher') {
+            studentFields.hidden = true;
+
+            studentIdInput.required = false;
+            studentIdInput.disabled = true;
+
+            registerButton.textContent = 'Register as Teacher';
+
+        } else {
+            studentFields.hidden = false;
+
+            studentIdInput.required = true;
+            studentIdInput.disabled = false;
+
+            registerButton.textContent = 'Register as Student';
+        }
+    }
+
+    roleSelect.addEventListener('change', updateRegistrationFields);
+
+    updateRegistrationFields();
+
+    // =====================================
+    // REGISTER ACCOUNT
+    // =====================================
+
     form.addEventListener('submit', async function(event) {
         event.preventDefault();
 
-        const formData = new FormData(form);
-        const studentData = Object.fromEntries(formData.entries());
+        message.textContent = '';
+
+        const accountData = Object.fromEntries(
+            new FormData(form).entries()
+        );
+
+        if (accountData.password !== accountData.confirm_password) {
+            message.textContent = 'Passwords do not match.';
+            message.style.color = 'red';
+            return;
+        }
+
+        if (accountData.password.length < 8) {
+            message.textContent = 'Password must be at least 8 characters.';
+            message.style.color = 'red';
+            return;
+        }
+
+        registerButton.disabled = true;
+        registerButton.textContent = 'Creating Account...';
 
         try {
             const response = await fetch('/api/register', {
@@ -137,21 +279,33 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(studentData)
+                credentials: 'same-origin',
+                body: JSON.stringify(accountData)
             });
 
             const result = await response.json();
 
-            message.textContent = result.message;
+            message.textContent = result.message || 'Registration completed.';
             message.style.color = response.ok ? 'green' : 'red';
 
             if (response.ok) {
                 form.reset();
+                updateRegistrationFields();
             }
 
         } catch (error) {
+            console.error('Registration error:', error);
+
             message.textContent = 'Unable to connect to server.';
             message.style.color = 'red';
+
+        } finally {
+            registerButton.disabled = false;
+
+            registerButton.textContent =
+                roleSelect.value === 'teacher'
+                    ? 'Register as Teacher'
+                    : 'Register as Student';
         }
     });
 </script>

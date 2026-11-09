@@ -1,0 +1,790 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Created Materials</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #EAF7EF;
+            color: #334155;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 11px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #16834A;
+            color: white;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .back-button {
+            background: white;
+            color: #16834A;
+        }
+
+        .back-button:hover {
+            background: #EAF7EF;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .intro {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            border-left: 5px solid #16834A;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        .intro h2 {
+            color: #0B5D35;
+            margin-top: 0;
+        }
+
+        .materials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+        }
+
+        .material-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            border-top: 5px solid #16834A;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        .material-card h3 {
+            color: #0B5D35;
+            margin-top: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .material-card p {
+            overflow-wrap: anywhere;
+        }
+
+        .type {
+            color: #16834A;
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: capitalize;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .published {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .card-actions button {
+            flex: 1 1 auto;
+        }
+
+        .edit-button {
+            background: #2563eb;
+        }
+
+        .edit-button:hover {
+            background: #1d4ed8;
+        }
+
+        .publish-button {
+            background: #16834A;
+        }
+
+        .publish-button:hover {
+            background: #0B5D35;
+        }
+
+        .unpublish-button {
+            background: #d97706;
+        }
+
+        .unpublish-button:hover {
+            background: #b45309;
+        }
+
+        .delete-button {
+            background: #dc2626;
+        }
+
+        .delete-button:hover {
+            background: #991b1b;
+        }
+
+        .open-button {
+            background: #64748b;
+        }
+
+        .open-button:hover {
+            background: #475569;
+        }
+
+        .empty {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            color: #64748b;
+            grid-column: 1 / -1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #00000070;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            z-index: 10;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        .modal-content h2 {
+            color: #0B5D35;
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 13px 0 7px;
+            font-weight: bold;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .cancel-button {
+            background: #64748b;
+        }
+
+        .cancel-button:hover {
+            background: #475569;
+        }
+
+        #message {
+            margin: 15px 0;
+            color: #0B5D35;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            header h1 {
+                font-size: 21px;
+            }
+
+            .container {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Manage Created Materials</h1>
+
+    <button class="back-button"
+            onclick="window.location.href='dashboard.html'">
+        Back to Dashboard
+    </button>
+</header>
+
+<div class="container">
+
+    <div class="intro">
+        <h2>My Created Materials</h2>
+
+        <p>
+            View and manage the quizzes, examinations, and flashcard
+            reviews that you created.
+        </p>
+
+        <button onclick="window.location.href='create-material.html?type=quiz'">
+            + Create New Material
+        </button>
+    </div>
+
+    <p id="message">Loading your materials...</p>
+
+    <div class="materials" id="materialsList"></div>
+
+</div>
+
+<!-- EDIT MATERIAL MODAL -->
+
+<div class="modal" id="editModal">
+    <div class="modal-content">
+
+        <h2>Edit Material Details</h2>
+
+        <input type="hidden" id="editId">
+
+        <label for="editTitle">Material Title</label>
+        <input type="text" id="editTitle" maxlength="150">
+
+        <label for="editDescription">Description</label>
+        <textarea id="editDescription" maxlength="1000"></textarea>
+
+        <label for="editStatus">Publication Status</label>
+        <select id="editStatus">
+            <option value="draft">Save as Draft</option>
+            <option value="published">Published</option>
+        </select>
+
+        <p style="color:#64748b;font-size:13px;">
+            This form changes the title, description, and publication
+            status. Existing questions and answers will be preserved.
+        </p>
+
+        <div class="modal-actions">
+            <button onclick="saveChanges()">Save Changes</button>
+
+            <button class="cancel-button" onclick="closeModal()">
+                Cancel
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let materials = [];
+
+    // ==========================================
+    // LOAD MY MATERIALS
+    // ==========================================
+
+    async function loadMaterials() {
+        const list = document.getElementById('materialsList');
+        const message = document.getElementById('message');
+
+        message.textContent = 'Loading your materials...';
+        list.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/materials/mine');
+
+            if (response.status === 401) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || 'Unable to load materials.'
+                );
+            }
+
+            materials = data.materials || [];
+
+            message.textContent =
+                'Total created materials: ' + materials.length;
+
+            if (materials.length === 0) {
+                list.innerHTML = `
+                    <div class="empty">
+                        <h3>No Materials Yet</h3>
+
+                        <p>
+                            You have not created any learning materials.
+                        </p>
+
+                        <button onclick="window.location.href='create-material.html?type=quiz'">
+                            Create Your First Material
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            materials.forEach(material => {
+                const card = document.createElement('div');
+                card.className = 'material-card';
+
+                // TITLE
+                const title = document.createElement('h3');
+                title.textContent = material.title;
+
+                // MATERIAL TYPE
+                const type = document.createElement('p');
+                type.className = 'type';
+
+                type.textContent =
+                    material.material_type === 'exam'
+                        ? 'Online Examination'
+                        : material.material_type === 'flashcard'
+                            ? 'Flashcard Review'
+                            : 'Online Quiz';
+
+                // DESCRIPTION
+                const description = document.createElement('p');
+
+                description.textContent =
+                    material.description || 'No description provided.';
+
+                // STATUS
+                const status = document.createElement('span');
+
+                const currentStatus =
+                    String(material.status).toLowerCase();
+
+                status.className = 'status ' +
+                    (currentStatus === 'published' ? 'published' : 'draft');
+
+                status.textContent = currentStatus;
+
+                // ITEM COUNT
+                const count = document.createElement('p');
+
+                const totalItems = Array.isArray(material.questions)
+                    ? material.questions.length
+                    : 0;
+
+                count.textContent =
+                    totalItems + (
+                        material.material_type === 'flashcard'
+                            ? ' flashcards'
+                            : ' questions'
+                    );
+
+                // ACTIONS
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+
+                // EDIT BUTTON
+                const editButton = document.createElement('button');
+
+                editButton.className = 'edit-button';
+                editButton.textContent = 'Edit Details';
+
+                editButton.addEventListener('click', () => {
+                    openEdit(material.id);
+                });
+
+                actions.appendChild(editButton);
+
+                // PUBLISH OR UNPUBLISH BUTTON
+                const statusButton = document.createElement('button');
+
+                if (currentStatus === 'published') {
+
+                    statusButton.className = 'unpublish-button';
+                    statusButton.textContent = 'Unpublish';
+
+                    statusButton.addEventListener('click', () => {
+                        updateMaterialStatus(
+                            material.id,
+                            'draft',
+                            material.title,
+                            statusButton
+                        );
+                    });
+
+                } else {
+
+                    statusButton.className = 'publish-button';
+                    statusButton.textContent = 'Publish';
+
+                    statusButton.addEventListener('click', () => {
+                        updateMaterialStatus(
+                            material.id,
+                            'published',
+                            material.title,
+                            statusButton
+                        );
+                    });
+                }
+
+                actions.appendChild(statusButton);
+
+                // DELETE BUTTON
+                const deleteButton = document.createElement('button');
+
+                deleteButton.className = 'delete-button';
+                deleteButton.textContent = 'Delete';
+
+                deleteButton.addEventListener('click', () => {
+                    deleteMaterial(material.id, material.title);
+                });
+
+                actions.appendChild(deleteButton);
+
+                // VIEW MATERIAL BUTTON
+                if (currentStatus === 'published') {
+                    const openButton = document.createElement('button');
+
+                    openButton.className = 'open-button';
+                    openButton.textContent = 'View Material';
+
+                    openButton.addEventListener('click', () => {
+                        window.location.href =
+                            'take-material.html?id=' +
+                            encodeURIComponent(material.id);
+                    });
+
+                    actions.appendChild(openButton);
+                }
+
+                card.appendChild(title);
+                card.appendChild(type);
+                card.appendChild(description);
+                card.appendChild(status);
+                card.appendChild(count);
+                card.appendChild(actions);
+
+                list.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error('Load materials error:', error);
+            message.textContent = error.message;
+        }
+    }
+
+
+    // ==========================================
+    // PUBLISH / UNPUBLISH MATERIAL
+    // ==========================================
+
+    async function updateMaterialStatus(id, newStatus, title, button) {
+        const isPublishing = newStatus === 'published';
+
+        const confirmationMessage = isPublishing
+            ? 'Publish "' + title + '"?\n\nAll logged-in users will be able to see this material.'
+            : 'Unpublish "' + title + '"?\n\nIt will disappear from Available Materials and return to your Drafts.';
+
+        if (!confirm(confirmationMessage)) {
+            return;
+        }
+
+        const material = materials.find(item =>
+            String(item.id) === String(id)
+        );
+
+        if (!material) {
+            alert('Material not found.');
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = isPublishing
+            ? 'Publishing...'
+            : 'Unpublishing...';
+
+        try {
+            const response = await fetch(
+                '/api/materials/' + encodeURIComponent(id),
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: material.title,
+                        description: material.description || '',
+                        material_type: material.material_type,
+                        status: newStatus,
+                        questions: material.questions
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || 'Unable to update publication status.'
+                );
+            }
+
+            alert(
+                isPublishing
+                    ? 'Material published successfully! It is now available to logged-in users.'
+                    : 'Material unpublished successfully! It is now saved as a Draft.'
+            );
+
+            await loadMaterials();
+
+        } catch (error) {
+            console.error('Publication status error:', error);
+
+            alert(error.message);
+
+            button.disabled = false;
+            button.textContent = isPublishing
+                ? 'Publish'
+                : 'Unpublish';
+        }
+    }
+
+
+    // ==========================================
+    // OPEN EDIT MODAL
+    // ==========================================
+
+    function openEdit(id) {
+        const material = materials.find(item =>
+            String(item.id) === String(id)
+        );
+
+        if (!material) {
+            alert('Material not found.');
+            return;
+        }
+
+        document.getElementById('editId').value = material.id;
+        document.getElementById('editTitle').value = material.title;
+
+        document.getElementById('editDescription').value =
+            material.description || '';
+
+        document.getElementById('editStatus').value =
+            material.status;
+
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+
+    // ==========================================
+    // CLOSE EDIT MODAL
+    // ==========================================
+
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+
+    // ==========================================
+    // SAVE MATERIAL CHANGES
+    // ==========================================
+
+    async function saveChanges() {
+        const id = document.getElementById('editId').value;
+
+        const material = materials.find(item =>
+            String(item.id) === String(id)
+        );
+
+        if (!material) {
+            alert('Material not found.');
+            return;
+        }
+
+        const title = document.getElementById('editTitle')
+            .value.trim();
+
+        const description = document.getElementById('editDescription')
+            .value.trim();
+
+        const status = document.getElementById('editStatus').value;
+
+        if (title.length < 2) {
+            alert('Please enter a valid title.');
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                '/api/materials/' + encodeURIComponent(id),
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        material_type: material.material_type,
+                        status: status,
+                        questions: material.questions
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || 'Unable to update material.'
+                );
+            }
+
+            alert('Material updated successfully!');
+
+            closeModal();
+            await loadMaterials();
+
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+
+    // ==========================================
+    // DELETE MATERIAL
+    // ==========================================
+
+    async function deleteMaterial(id, title) {
+        const confirmed = confirm(
+            'Are you sure you want to permanently delete "' +
+            title + '"?\n\nThis action cannot be undone.'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                '/api/materials/' + encodeURIComponent(id),
+                {
+                    method: 'DELETE'
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || 'Unable to delete material.'
+                );
+            }
+
+            alert('Material deleted successfully!');
+
+            await loadMaterials();
+
+        } catch (error) {
+            console.error('Delete material error:', error);
+
+            alert(error.message);
+        }
+    }
+
+
+    // ==========================================
+    // CLOSE MODAL WHEN CLICKING OUTSIDE
+    // ==========================================
+
+    document.getElementById('editModal').addEventListener(
+        'click',
+        function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        }
+    );
+
+
+    // ==========================================
+    // INITIALIZE PAGE
+    // ==========================================
+
+    loadMaterials();
+
+</script>
+
+</body>
+</html>

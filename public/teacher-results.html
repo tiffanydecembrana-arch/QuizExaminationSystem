@@ -1,0 +1,617 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Results</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #EAF7EF;
+            color: #334155;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        header p {
+            margin-bottom: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .top-bar h2 {
+            color: #0B5D35;
+            margin: 0;
+        }
+
+        button {
+            background: #16834A;
+            color: white;
+            border: none;
+            padding: 11px 18px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            border-left: 5px solid #16834A;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        .summary-card h3 {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0 0 10px;
+        }
+
+        .summary-card p {
+            color: #0B5D35;
+            font-size: 27px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .results-panel {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .filters input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 750px;
+        }
+
+        th {
+            background: #EAF7EF;
+            color: #0B5D35;
+            text-align: left;
+            padding: 14px 12px;
+        }
+
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:hover td {
+            background: #f8fcf9;
+        }
+
+        .type-label {
+            display: inline-block;
+            background: #EAF7EF;
+            color: #0B5D35;
+            padding: 6px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+        }
+
+        .error-message {
+            background: #fff1f2;
+            color: #be123c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 15px auto;
+                padding: 12px;
+            }
+
+            .results-panel {
+                padding: 14px;
+            }
+
+            .top-bar h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Quiz Examination System</h1>
+    <p>Student Results Management</p>
+</header>
+
+<div class="container">
+
+    <div class="top-bar">
+        <h2>Student Results</h2>
+
+        <button onclick="window.location.href='dashboard.html'">
+            Back to Dashboard
+        </button>
+    </div>
+
+    <div class="summary">
+
+        <div class="summary-card">
+            <h3>Total Submissions</h3>
+            <p id="totalSubmissions">0</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Quiz Submissions</h3>
+            <p id="quizSubmissions">0</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Examination Submissions</h3>
+            <p id="examSubmissions">0</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Material Submissions</h3>
+            <p id="materialSubmissions">0</p>
+        </div>
+
+    </div>
+
+    <div class="results-panel">
+
+        <h2 style="color:#0B5D35;">All Student Submissions</h2>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="filters">
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search student name or material..."
+                oninput="displayResults()"
+            >
+
+            <select id="typeFilter" onchange="displayResults()">
+                <option value="all">All Types</option>
+                <option value="quiz">Online Quiz</option>
+                <option value="exam">Online Examination</option>
+                <option value="material">Created Materials</option>
+            </select>
+
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Student ID</th>
+                        <th>Activity</th>
+                        <th>Type</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+
+                <tbody id="resultsTable">
+                    <tr>
+                        <td colspan="7" class="empty-message">
+                            Loading student results...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    let allResults = [];
+
+    function getValue(object, possibleNames, fallback = '') {
+        for (const name of possibleNames) {
+            if (object[name] !== undefined && object[name] !== null) {
+                return object[name];
+            }
+        }
+
+        return fallback;
+    }
+
+    function normalizeResults(data) {
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        if (Array.isArray(data.results)) {
+            return data.results;
+        }
+
+        const combined = [];
+
+        const groups = [
+            {
+                keys: ['quizResults', 'quiz_results'],
+                type: 'quiz'
+            },
+            {
+                keys: ['examResults', 'exam_results'],
+                type: 'exam'
+            },
+            {
+                keys: ['materialResults', 'material_results'],
+                type: 'material'
+            }
+        ];
+
+        groups.forEach(group => {
+            for (const key of group.keys) {
+                if (Array.isArray(data[key])) {
+                    data[key].forEach(result => {
+                        combined.push({
+                            ...result,
+                            result_type: result.result_type || group.type
+                        });
+                    });
+                    break;
+                }
+            }
+        });
+
+        return combined;
+    }
+
+    function getResultType(result) {
+        const value = String(
+            getValue(result, [
+                'result_type',
+                'type',
+                'material_type'
+            ], 'quiz')
+        ).toLowerCase();
+
+        if (value.includes('exam')) return 'exam';
+
+        if (
+            value.includes('material') ||
+            value.includes('flashcard')
+        ) return 'material';
+
+        return 'quiz';
+    }
+
+    function getTypeLabel(result) {
+        const type = getResultType(result);
+
+        if (type === 'exam') return 'Online Examination';
+
+        if (type === 'material') {
+            const materialType = String(
+                getValue(result, ['material_type'], '')
+            ).toLowerCase();
+
+            if (materialType === 'flashcard') {
+                return 'Flashcard Review';
+            }
+
+            if (materialType === 'exam') {
+                return 'Created Examination';
+            }
+
+            return 'Created Material';
+        }
+
+        return 'Online Quiz';
+    }
+
+    function formatDate(value) {
+        if (!value) return 'Not available';
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleDateString('en-PH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    async function loadResults() {
+        const table = document.getElementById('resultsTable');
+        const errorMessage = document.getElementById('errorMessage');
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-message">
+                    Loading student results...
+                </td>
+            </tr>
+        `;
+
+        errorMessage.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/teacher/results');
+
+            if (response.status === 401) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (response.status === 403) {
+                document.querySelector('.results-panel').style.display = 'none';
+                document.querySelector('.summary').style.display = 'none';
+
+                errorMessage.textContent =
+                    'Access denied. Only authorized teacher accounts can view student results.';
+
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || 'Unable to load student results.'
+                );
+            }
+
+            allResults = normalizeResults(data);
+
+            updateSummary();
+            displayResults();
+
+        } catch (error) {
+            table.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-message">
+                        Unable to load student results.
+                    </td>
+                </tr>
+            `;
+
+            errorMessage.textContent =
+                error.message || 'Something went wrong.';
+
+            errorMessage.style.display = 'block';
+        }
+    }
+
+    function updateSummary() {
+        document.getElementById('totalSubmissions').textContent =
+            allResults.length;
+
+        document.getElementById('quizSubmissions').textContent =
+            allResults.filter(result =>
+                getResultType(result) === 'quiz'
+            ).length;
+
+        document.getElementById('examSubmissions').textContent =
+            allResults.filter(result =>
+                getResultType(result) === 'exam'
+            ).length;
+
+        document.getElementById('materialSubmissions').textContent =
+            allResults.filter(result =>
+                getResultType(result) === 'material'
+            ).length;
+    }
+
+    function displayResults() {
+        const table = document.getElementById('resultsTable');
+
+        const search = document.getElementById('searchInput')
+            .value.trim().toLowerCase();
+
+        const selectedType =
+            document.getElementById('typeFilter').value;
+
+        const filtered = allResults.filter(result => {
+            const studentName = String(
+                getValue(result, [
+                    'student_name',
+                    'full_name',
+                    'studentName'
+                ], '')
+            ).toLowerCase();
+
+            const studentId = String(
+                getValue(result, [
+                    'student_id',
+                    'studentId'
+                ], '')
+            ).toLowerCase();
+
+            const activity = String(
+                getValue(result, [
+                    'title',
+                    'material_title',
+                    'activity_name',
+                    'quiz_title',
+                    'exam_title'
+                ], getTypeLabel(result))
+            ).toLowerCase();
+
+            const matchesSearch =
+                studentName.includes(search) ||
+                studentId.includes(search) ||
+                activity.includes(search);
+
+            const matchesType =
+                selectedType === 'all' ||
+                getResultType(result) === selectedType;
+
+            return matchesSearch && matchesType;
+        });
+
+        table.innerHTML = '';
+
+        if (filtered.length === 0) {
+            table.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-message">
+                        No matching student results found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        filtered.forEach(result => {
+            const row = document.createElement('tr');
+
+            const studentName = getValue(result, [
+                'student_name',
+                'full_name',
+                'studentName'
+            ], 'Unknown Student');
+
+            const studentId = getValue(result, [
+                'student_id',
+                'studentId'
+            ], 'Not available');
+
+            const activity = getValue(result, [
+                'title',
+                'material_title',
+                'activity_name',
+                'quiz_title',
+                'exam_title'
+            ], getTypeLabel(result));
+
+            const score = getValue(result, ['score'], 0);
+            const total = getValue(result, ['total'], 0);
+
+            const percentage = getValue(result, [
+                'percentage'
+            ], null);
+
+            const date = getValue(result, [
+                'date',
+                'created_at',
+                'submitted_at'
+            ], '');
+
+            const cells = [
+                studentName,
+                studentId,
+                activity,
+                getTypeLabel(result),
+                score + ' / ' + total,
+                percentage === null
+                    ? 'Not available'
+                    : Number(percentage).toFixed(2) + '%',
+                formatDate(date)
+            ];
+
+            cells.forEach((value, index) => {
+                const cell = document.createElement('td');
+
+                if (index === 3) {
+                    const label = document.createElement('span');
+                    label.className = 'type-label';
+                    label.textContent = value;
+                    cell.appendChild(label);
+                } else {
+                    cell.textContent = value;
+                }
+
+                row.appendChild(cell);
+            });
+
+            table.appendChild(row);
+        });
+    }
+
+    loadResults();
+</script>
+
+</body>
+</html>

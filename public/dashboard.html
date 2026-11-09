@@ -1,15 +1,18 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard</title>
+    <title>Quiz Examination System</title>
 
     <style>
         * {
             box-sizing: border-box;
             font-family: Arial, sans-serif;
+        }
+
+        [hidden] {
+            display: none !important;
         }
 
         body {
@@ -26,13 +29,8 @@
             position: relative;
         }
 
-        header h1 {
-            margin: 0;
-        }
-
-        header p {
-            margin-bottom: 0;
-        }
+        header h1 { margin: 0; }
+        header p { margin-bottom: 0; }
 
         .settings {
             position: absolute;
@@ -46,20 +44,19 @@
             padding: 10px 15px;
         }
 
-        .settings-button:hover {
-            background: #EAF7EF;
-        }
+        .settings-button:hover { background: #EAF7EF; }
 
         .settings-menu {
             display: none;
             position: absolute;
             right: 0;
             top: 45px;
-            width: 210px;
+            width: 260px;
+            max-height: 75vh;
+            overflow-y: auto;
             background: white;
             border-radius: 10px;
             box-shadow: 0 4px 15px #00000025;
-            overflow: hidden;
             z-index: 10;
         }
 
@@ -69,12 +66,23 @@
             background: white;
             color: #0B5D35;
             text-align: left;
-            padding: 13px 15px;
+            padding: 12px 15px;
             border-radius: 0;
         }
 
-        .settings-menu button:hover {
+        .settings-menu button:hover { background: #EAF7EF; }
+
+        .menu-heading {
+            padding: 11px 15px;
             background: #EAF7EF;
+            color: #0B5D35;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: #dce9df;
         }
 
         .container {
@@ -97,8 +105,11 @@
             margin-top: 0;
         }
 
-        .welcome p {
-            color: #64748b;
+        .welcome p { color: #64748b; }
+
+        .section-title {
+            color: #0B5D35;
+            margin: 35px 0 18px;
         }
 
         .features {
@@ -122,9 +133,7 @@
             box-shadow: 0 7px 18px #00000018;
         }
 
-        .card h3 {
-            color: #0B5D35;
-        }
+        .card h3 { color: #0B5D35; }
 
         .card p {
             color: #64748b;
@@ -142,8 +151,84 @@
             transition: 0.3s;
         }
 
-        button:hover {
-            background: #0B5D35;
+        button:hover { background: #0B5D35; }
+
+        .available-section {
+            margin-top: 40px;
+            scroll-margin-top: 20px;
+        }
+
+        .available-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .available-header h2 {
+            color: #0B5D35;
+            margin: 0;
+        }
+
+        .filter-select {
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            background: white;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .materials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 20px;
+        }
+
+        .material-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            border-top: 4px solid #16834A;
+            box-shadow: 0 4px 12px #00000010;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .material-card h3 {
+            color: #0B5D35;
+            margin-top: 10px;
+            overflow-wrap: anywhere;
+        }
+
+        .material-card p {
+            color: #64748b;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .material-type {
+            display: inline-block;
+            background: #EAF7EF;
+            color: #0B5D35;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            width: fit-content;
+        }
+
+        .material-card button { margin-top: auto; }
+
+        .empty-message {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            color: #64748b;
+            text-align: center;
+            grid-column: 1 / -1;
         }
 
         .modal {
@@ -193,17 +278,10 @@
             margin-top: 15px;
         }
 
-        .modal-actions button {
-            flex: 1;
-        }
+        .modal-actions button { flex: 1; }
 
-        .cancel-button {
-            background: #64748b;
-        }
-
-        .cancel-button:hover {
-            background: #475569;
-        }
+        .cancel-button { background: #64748b; }
+        .cancel-button:hover { background: #475569; }
 
         .student-list {
             list-style: none;
@@ -225,11 +303,28 @@
             color: #0B5D35;
         }
 
-        #message {
-            margin-top: 12px;
-            font-size: 14px;
-            color: #0B5D35;
+        .access-denied-content {
+            text-align: center;
+            max-width: 380px;
         }
+
+        .access-icon {
+            font-size: 45px;
+            margin-bottom: 10px;
+        }
+
+        .access-denied-content h2 {
+            color: #0B5D35;
+            margin-bottom: 10px;
+        }
+
+        .access-denied-content p {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .access-denied-content button { width: 100%; }
 
         @media (max-width: 600px) {
             .container {
@@ -246,6 +341,8 @@
                 top: 10px;
                 right: 10px;
             }
+
+            .settings-menu { width: 240px; }
         }
     </style>
 </head>
@@ -259,60 +356,119 @@
         </button>
 
         <div class="settings-menu" id="settingsMenu">
-            <button onclick="showStudents()">Registered Students</button>
+
+            <div id="teacherToolsSection" hidden>
+                <div class="menu-heading">TEACHER TOOLS</div>
+
+                <button onclick="openCreateMaterial('quiz')">Create Quiz</button>
+                <button onclick="openCreateMaterial('exam')">Create Examination</button>
+                <button onclick="openCreateMaterial('flashcard')">Create Flashcard Review</button>
+                <button onclick="goToManageMaterials()">Manage Created Materials</button>
+                <button onclick="goToAvailableMaterials()">View Available Materials</button>
+                <button onclick="goToTeacherResults()">View Student Results</button>
+            </div>
+
+            <div id="studentToolsSection" hidden>
+                <div class="menu-heading">STUDENT TOOLS</div>
+
+                <button onclick="openCreateMaterial('quiz')">Create Quiz</button>
+                <button onclick="openCreateMaterial('exam')">Create Examination</button>
+                <button onclick="openCreateMaterial('flashcard')">Create Flashcard Review</button>
+                <button onclick="goToManageMaterials()">Manage Created Materials</button>
+                <button onclick="goToAvailableMaterials()">View Available Materials</button>
+                <button onclick="goToMyResults()">My Results</button>
+            </div>
+
+            <div class="menu-divider"></div>
+
+            <div class="menu-heading">ACCOUNT SETTINGS</div>
+
+            <button id="registeredStudentsButton"
+                    onclick="showStudents()" hidden>
+                Registered Students
+            </button>
+
             <button onclick="showUsername()">Change Username</button>
             <button onclick="showPassword()">Change Password</button>
             <button onclick="showSecurity()">Security Settings</button>
-            <button onclick="logout()">Logout</button>
+            <button onclick="logout()">Log Out</button>
+
         </div>
     </div>
 
     <h1>Quiz Examination System</h1>
-    <p>Student Dashboard</p>
+    <p id="dashboardSubtitle">Dashboard</p>
 </header>
 
 <div class="container">
 
     <div class="welcome">
-        <h2>Welcome, <span id="studentName">Student</span>!</h2>
-        <p>Welcome to your online quiz and examination system.</p>
+        <h2>Welcome, <span id="studentName">User</span>!</h2>
+        <p id="welcomeMessage">Welcome to your online learning system.</p>
     </div>
+
+    <h2 class="section-title">My Learning Tools</h2>
 
     <div class="features">
 
         <div class="card">
             <h3>Online Quiz</h3>
-            <p>Practice your IT knowledge through online quizzes.</p>
-            <button onclick="window.location.href='quiz.html'">
-                Start Online Quiz
+            <p>Browse and take published quizzes created by users.</p>
+            <button onclick="goToAvailableMaterials('quiz')">
+                View Available Quizzes
             </button>
         </div>
 
         <div class="card">
             <h3>Flashcards</h3>
-            <p>Review questions using flashcards.</p>
-            <button onclick="window.location.href='flashcards.html'">
-                Start Flashcards
+            <p>Review available flashcard learning materials.</p>
+            <button onclick="goToAvailableMaterials('flashcard')">
+                View Flashcards
             </button>
         </div>
 
         <div class="card">
             <h3>Online Examination</h3>
-            <p>Take your online examination.</p>
-            <button onclick="window.location.href='exam.html'">
-                Start Exam
+            <p>Browse and take published examinations.</p>
+            <button onclick="goToAvailableMaterials('exam')">
+                View Available Exams
             </button>
         </div>
 
-        <div class="card">
+        <div class="card" id="myResultsCard" hidden>
             <h3>My Results</h3>
-            <p>View your quiz and examination scores.</p>
-            <button onclick="window.location.href='results.html'">
-                View Results
-            </button>
+            <p>View your own quiz and examination scores.</p>
+            <button onclick="goToMyResults()">View Results</button>
+        </div>
+
+        <div class="card" id="teacherResultsCard" hidden>
+            <h3>View Student Results</h3>
+            <p>View the quiz and examination results submitted by students.</p>
+            <button onclick="goToTeacherResults()">View Student Results</button>
         </div>
 
     </div>
+
+    <section class="available-section" id="availableMaterialsSection">
+
+        <div class="available-header">
+            <h2>Available Materials</h2>
+
+            <select class="filter-select" id="materialFilter"
+                    onchange="loadAvailableMaterials()">
+                <option value="all">All Materials</option>
+                <option value="quiz">Online Quiz</option>
+                <option value="exam">Online Examination</option>
+                <option value="flashcard">Flashcard Review</option>
+            </select>
+        </div>
+
+        <div class="materials-grid" id="availableMaterials">
+            <div class="empty-message">Loading available materials...</div>
+        </div>
+
+    </section>
+
 </div>
 
 <!-- REGISTERED STUDENTS -->
@@ -328,11 +484,11 @@
     </div>
 </div>
 
-<!-- CHANGE USERNAME -->
+<!-- CHANGE FULL NAME -->
 <div class="modal" id="usernameModal">
     <div class="modal-content">
         <h2>Change Username</h2>
-        <p>Change your registered Full Name.</p>
+        <p>This changes your registered Full Name.</p>
 
         <label for="newFullName">New Full Name</label>
         <input type="text" id="newFullName" maxlength="100"
@@ -373,9 +529,7 @@
 <div class="modal" id="securityModal">
     <div class="modal-content">
         <h2>Security Settings</h2>
-        <div id="securityInformation">
-            Loading security information...
-        </div>
+        <div id="securityInformation">Loading security information...</div>
 
         <div class="modal-actions">
             <button class="cancel-button" onclick="closeModals()">Close</button>
@@ -383,7 +537,23 @@
     </div>
 </div>
 
+<!-- TEACHER ONLY MESSAGE -->
+<div class="modal" id="teacherOnlyModal">
+    <div class="modal-content access-denied-content">
+        <div class="access-icon">🔒</div>
+        <h2>Teacher View Only</h2>
+        <p>This feature is only available for Teacher accounts.</p>
+        <button onclick="closeModals()">Got it</button>
+    </div>
+</div>
+
 <script>
+    let currentUserRole = null;
+
+    // =====================================
+    // CHECK CURRENT USER
+    // =====================================
+
     async function checkStudent() {
         try {
             const response = await fetch('/api/student');
@@ -395,13 +565,55 @@
 
             const student = await response.json();
 
+            currentUserRole =
+                String(student.role || 'student').toLowerCase();
+
             document.getElementById('studentName').textContent =
-                student.full_name;
+                student.full_name || 'User';
+
+            applyRoleSettings();
+            loadAvailableMaterials();
 
         } catch (error) {
+            console.error('Current user error:', error);
             window.location.href = 'login.html';
         }
     }
+
+    // =====================================
+    // ROLE-BASED DASHBOARD
+    // =====================================
+
+    function applyRoleSettings() {
+        const isTeacher = currentUserRole === 'teacher';
+
+        document.getElementById('teacherToolsSection').hidden =
+            !isTeacher;
+
+        document.getElementById('studentToolsSection').hidden =
+            isTeacher;
+
+        document.getElementById('registeredStudentsButton').hidden =
+            !isTeacher;
+
+        document.getElementById('myResultsCard').hidden =
+            isTeacher;
+
+        document.getElementById('teacherResultsCard').hidden =
+            !isTeacher;
+
+        document.getElementById('dashboardSubtitle').textContent =
+            isTeacher ? 'Teacher Dashboard' : 'Student Dashboard';
+
+        document.getElementById('welcomeMessage').textContent =
+            isTeacher
+                ? 'Create, publish, and manage your learning materials.'
+                : 'Welcome to your online quiz and examination system.';
+    }
+
+    // =====================================
+    // SETTINGS MENU
+    // =====================================
 
     function toggleSettings() {
         const menu = document.getElementById('settingsMenu');
@@ -410,13 +622,73 @@
             menu.style.display === 'block' ? 'none' : 'block';
     }
 
+    function closeSettingsMenu() {
+        document.getElementById('settingsMenu').style.display = 'none';
+    }
+
+    // =====================================
+    // NAVIGATION
+    // =====================================
+
+    function openCreateMaterial(type) {
+        closeSettingsMenu();
+
+        window.location.href =
+            'create-material.html?type=' + encodeURIComponent(type);
+    }
+
+    function goToManageMaterials() {
+        closeSettingsMenu();
+        window.location.href = 'manage-materials.html';
+    }
+
+    function goToTeacherResults() {
+        closeSettingsMenu();
+
+        if (currentUserRole !== 'teacher') {
+            openModal('teacherOnlyModal');
+            return;
+        }
+
+        window.location.href = 'teacher-results.html';
+    }
+
+    function goToMyResults() {
+        closeSettingsMenu();
+
+        if (currentUserRole !== 'student') {
+            alert('My Results is only available for Student accounts.');
+            return;
+        }
+
+        window.location.href = 'results.html';
+    }
+
+    function goToAvailableMaterials(type = 'all') {
+        closeSettingsMenu();
+
+        const filter = document.getElementById('materialFilter');
+
+        filter.value = type;
+        loadAvailableMaterials();
+
+        document.getElementById('availableMaterialsSection')
+            .scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+    }
+
+    // =====================================
+    // MODAL FUNCTIONS
+    // =====================================
+
     function closeModals() {
         document.querySelectorAll('.modal').forEach(modal => {
             modal.style.display = 'none';
         });
 
-        document.getElementById('settingsMenu').style.display = 'none';
-        document.getElementById('message')?.remove();
+        closeSettingsMenu();
     }
 
     function openModal(id) {
@@ -424,7 +696,143 @@
         document.getElementById(id).style.display = 'flex';
     }
 
+    // =====================================
+    // LOAD AVAILABLE MATERIALS
+    // =====================================
+
+    async function loadAvailableMaterials() {
+        const container =
+            document.getElementById('availableMaterials');
+
+        const filter =
+            document.getElementById('materialFilter').value;
+
+        container.innerHTML =
+            '<div class="empty-message">Loading materials...</div>';
+
+        try {
+            const types = filter === 'all'
+                ? ['quiz', 'exam', 'flashcard']
+                : [filter];
+
+            const responses = await Promise.all(
+                types.map(type =>
+                    fetch('/api/materials?type=' + encodeURIComponent(type))
+                )
+            );
+
+            let allMaterials = [];
+
+            for (const response of responses) {
+                if (!response.ok) {
+                    throw new Error('Unable to load published materials.');
+                }
+
+                const data = await response.json();
+
+                const materials = Array.isArray(data)
+                    ? data
+                    : (data.materials || []);
+
+                allMaterials = allMaterials.concat(materials);
+            }
+
+            // Show newest materials first.
+            allMaterials.sort((a, b) => {
+                return new Date(b.created_at || 0) -
+                       new Date(a.created_at || 0);
+            });
+
+            container.innerHTML = '';
+
+            if (allMaterials.length === 0) {
+                container.innerHTML =
+                    '<div class="empty-message">' +
+                    'No published materials available yet.' +
+                    '</div>';
+                return;
+            }
+
+            allMaterials.forEach(material => {
+                const card = document.createElement('div');
+                card.className = 'material-card';
+
+                const type = document.createElement('span');
+                type.className = 'material-type';
+
+                type.textContent =
+                    material.material_type === 'exam'
+                        ? 'Online Examination'
+                        : material.material_type === 'flashcard'
+                            ? 'Flashcard Review'
+                            : 'Online Quiz';
+
+                const title = document.createElement('h3');
+                title.textContent = material.title || 'Untitled Material';
+
+                const description = document.createElement('p');
+                description.textContent =
+                    material.description || 'No description provided.';
+
+                const creator = document.createElement('p');
+                creator.textContent =
+                    'Created by: ' +
+                    (material.creator_name || 'Unknown');
+
+                const count = document.createElement('p');
+
+                const total = Number(material.item_count || 0);
+
+                count.textContent =
+                    total + (
+                        material.material_type === 'flashcard'
+                            ? ' flashcards'
+                            : ' questions'
+                    );
+
+                const openButton = document.createElement('button');
+
+                openButton.textContent =
+                    material.material_type === 'flashcard'
+                        ? 'Review Flashcards'
+                        : 'Start Material';
+
+                openButton.addEventListener('click', () => {
+                    window.location.href =
+                        'take-material.html?id=' +
+                        encodeURIComponent(material.id);
+                });
+
+                card.appendChild(type);
+                card.appendChild(title);
+                card.appendChild(description);
+                card.appendChild(creator);
+                card.appendChild(count);
+                card.appendChild(openButton);
+
+                container.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error('Available materials error:', error);
+
+            container.innerHTML =
+                '<div class="empty-message">' +
+                'Unable to load available materials. Please refresh the page.' +
+                '</div>';
+        }
+    }
+
+    // =====================================
+    // REGISTERED STUDENTS - TEACHER ONLY
+    // =====================================
+
     async function showStudents() {
+        if (currentUserRole !== 'teacher') {
+            openModal('teacherOnlyModal');
+            return;
+        }
+
         openModal('studentsModal');
 
         const list = document.getElementById('studentList');
@@ -440,7 +848,7 @@
             const data = await response.json();
             list.innerHTML = '';
 
-            if (!data.students.length) {
+            if (!data.students || !data.students.length) {
                 list.innerHTML = '<li>No registered students found.</li>';
                 return;
             }
@@ -452,9 +860,14 @@
             });
 
         } catch (error) {
+            console.error('Registered students error:', error);
             list.innerHTML = '<li>Unable to load student list.</li>';
         }
     }
+
+    // =====================================
+    // CHANGE USERNAME / FULL NAME
+    // =====================================
 
     function showUsername() {
         openModal('usernameModal');
@@ -467,8 +880,8 @@
         const full_name =
             document.getElementById('newFullName').value.trim();
 
-        if (full_name.length < 2) {
-            alert('Please enter a valid Full Name.');
+        if (full_name.length < 2 || full_name.length > 100) {
+            alert('Full Name must be between 2 and 100 characters.');
             return;
         }
 
@@ -495,9 +908,14 @@
             closeModals();
 
         } catch (error) {
+            console.error('Change name error:', error);
             alert('Something went wrong. Please try again.');
         }
     }
+
+    // =====================================
+    // CHANGE PASSWORD
+    // =====================================
 
     function showPassword() {
         openModal('passwordModal');
@@ -546,9 +964,14 @@
             closeModals();
 
         } catch (error) {
+            console.error('Change password error:', error);
             alert('Something went wrong. Please try again.');
         }
     }
+
+    // =====================================
+    // SECURITY SETTINGS
+    // =====================================
 
     async function showSecurity() {
         openModal('securityModal');
@@ -566,7 +989,6 @@
             }
 
             const data = await response.json();
-
             information.innerHTML = '';
 
             const items = [
@@ -584,7 +1006,7 @@
                 strong.textContent = label + ': ';
 
                 const span = document.createElement('span');
-                span.textContent = value;
+                span.textContent = value ?? 'Not available';
 
                 item.appendChild(strong);
                 item.appendChild(span);
@@ -592,35 +1014,59 @@
             });
 
         } catch (error) {
+            console.error('Security settings error:', error);
             information.textContent =
                 'Unable to load security information.';
         }
     }
 
+    // =====================================
+    // LOGOUT
+    // =====================================
+
     async function logout() {
-        const confirmed = confirm('Are you sure you want to log out?');
+        const confirmed =
+            confirm('Are you sure you want to log out?');
 
         if (!confirmed) return;
 
         try {
-            await fetch('/api/logout', {
+            const response = await fetch('/api/logout', {
                 method: 'POST'
             });
-        } finally {
+
+            if (!response.ok) {
+                alert('Unable to log out. Please try again.');
+                return;
+            }
+
             window.location.href = 'login.html';
+
+        } catch (error) {
+            console.error('Logout error:', error);
+            alert('Unable to connect to server.');
         }
     }
 
+    // =====================================
+    // CLOSE SETTINGS WHEN CLICKING OUTSIDE
+    // =====================================
+
     document.addEventListener('click', function(event) {
-        const menu = document.getElementById('settingsMenu');
         const settings = document.querySelector('.settings');
+        const menu = document.getElementById('settingsMenu');
 
         if (!settings.contains(event.target)) {
             menu.style.display = 'none';
         }
     });
 
+    // =====================================
+    // INITIALIZE DASHBOARD
+    // =====================================
+
     checkStudent();
+
 </script>
 
 </body>

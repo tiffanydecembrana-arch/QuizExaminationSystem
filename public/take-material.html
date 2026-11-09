@@ -1,0 +1,809 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Learning Material</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #EAF7EF;
+            color: #334155;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 23px;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 12px 18px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #16834A;
+            color: white;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .back-button {
+            background: white;
+            color: #16834A;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        h2, h3 {
+            color: #0B5D35;
+        }
+
+        .material-description {
+            color: #64748b;
+        }
+
+        .progress-area {
+            margin: 20px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #dcefe3;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            background: #16834A;
+            transition: width 0.3s;
+        }
+
+        .question-number {
+            color: #16834A;
+            font-weight: bold;
+        }
+
+        .question-text {
+            font-size: 21px;
+            line-height: 1.5;
+            color: #0B5D35;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .choices {
+            display: grid;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .choice {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 15px;
+            border: 2px solid #dcefe3;
+            border-radius: 9px;
+            cursor: pointer;
+        }
+
+        .choice:hover,
+        .choice.selected {
+            background: #EAF7EF;
+            border-color: #16834A;
+        }
+
+        .choice input {
+            margin-top: 3px;
+            accent-color: #16834A;
+        }
+
+        .choice span {
+            overflow-wrap: anywhere;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .navigation button {
+            min-width: 110px;
+        }
+
+        .secondary-button {
+            background: #64748b;
+        }
+
+        .flashcard-front {
+            background: #EAF7EF;
+            border: 2px solid #16834A;
+            border-radius: 12px;
+            padding: 35px 20px;
+            text-align: center;
+            min-height: 180px;
+        }
+
+        .flashcard-front p {
+            font-size: 21px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .flashcard-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .answer-box {
+            background: #EAF7EF;
+            padding: 18px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .answer-box strong {
+            color: #0B5D35;
+        }
+
+        .result {
+            text-align: center;
+            display: none;
+        }
+
+        .score {
+            color: #16834A;
+            font-size: 42px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .result-detail {
+            background: #EAF7EF;
+            padding: 15px;
+            border-radius: 9px;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #b91c1c;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 12px;
+                margin: 15px auto;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+
+            .question-text {
+                font-size: 18px;
+            }
+
+            .navigation button {
+                min-width: 0;
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Learning Material</h1>
+    <button class="back-button"
+        onclick="window.location.href='dashboard.html'">
+        Back to Dashboard
+    </button>
+</header>
+
+<div class="container">
+
+    <div class="panel" id="materialInformation">
+        <h2 id="materialTitle">Loading material...</h2>
+        <p class="material-description" id="materialDescription"></p>
+        <p id="materialType"></p>
+    </div>
+
+    <div class="panel hidden" id="assessmentPanel">
+
+        <div class="progress-area">
+            <div class="progress-info">
+                <span id="progressText">Question 1</span>
+                <span id="progressPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div id="questionArea">
+            <p class="question-number" id="questionNumber"></p>
+            <div class="question-text" id="questionText"></div>
+            <div class="choices" id="choices"></div>
+        </div>
+
+        <div class="navigation">
+            <button class="secondary-button"
+                id="previousButton"
+                onclick="previousQuestion()">
+                Previous
+            </button>
+
+            <button id="nextButton" onclick="nextQuestion()">
+                Next
+            </button>
+
+            <button id="submitButton"
+                class="hidden"
+                onclick="submitAssessment()">
+                Submit
+            </button>
+        </div>
+
+    </div>
+
+    <div class="panel hidden" id="flashcardPanel">
+
+        <div class="progress-area">
+            <div class="progress-info">
+                <span id="flashcardProgress">Card 1</span>
+                <span id="flashcardPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill"
+                    id="flashcardProgressFill"></div>
+            </div>
+        </div>
+
+        <div class="flashcard-front">
+            <h2 id="flashcardSide">FRONT</h2>
+            <p id="flashcardText"></p>
+        </div>
+
+        <div class="answer-box" id="flashcardAnswer">
+            <strong>Answer:</strong>
+            <p id="flashcardAnswerText"></p>
+        </div>
+
+        <div class="flashcard-actions">
+            <button id="revealButton" onclick="revealAnswer()">
+                Show Answer
+            </button>
+
+            <button class="secondary-button"
+                id="nextCardButton"
+                onclick="nextCard()">
+                Next Card
+            </button>
+        </div>
+
+    </div>
+
+    <div class="panel result" id="resultPanel">
+        <h2>Assessment Completed!</h2>
+        <p>Your score is:</p>
+
+        <div class="score" id="scoreText">0 / 0</div>
+        <h3 id="percentageText">0%</h3>
+
+        <div class="result-detail">
+            <p><strong>Material:</strong>
+                <span id="resultTitle"></span>
+            </p>
+
+            <p><strong>Result:</strong>
+                <span id="resultStatus">Saved</span>
+            </p>
+
+            <p><strong>Date Submitted:</strong>
+                <span id="resultDate"></span>
+            </p>
+        </div>
+
+        <p id="resultMessage">
+            Your result has been saved successfully.
+        </p>
+
+        <button onclick="window.location.href='results.html'">
+            View My Results
+        </button>
+
+        <button class="secondary-button"
+            onclick="window.location.href='dashboard.html'">
+            Dashboard
+        </button>
+    </div>
+
+    <div class="error hidden" id="errorPanel"></div>
+
+</div>
+</body>
+
+<script>
+const materialId = new URLSearchParams(window.location.search).get('id');
+
+let material = null;
+let questions = [];
+let questionOrder = [];
+let currentIndex = 0;
+let answers = [];
+let currentCard = 0;
+let answerRevealed = false;
+let submissionCompleted = false;
+
+function shuffle(array) {
+    const result = [...array];
+
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+
+    return result;
+}
+
+function showError(message) {
+    document.getElementById('materialInformation').classList.add('hidden');
+    document.getElementById('assessmentPanel').classList.add('hidden');
+    document.getElementById('flashcardPanel').classList.add('hidden');
+    document.getElementById('resultPanel').style.display = 'none';
+
+    const errorPanel = document.getElementById('errorPanel');
+    errorPanel.textContent = message;
+    errorPanel.classList.remove('hidden');
+}
+
+async function loadMaterial() {
+    if (!materialId) {
+        showError('No material ID was provided.');
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            '/api/materials/' + encodeURIComponent(materialId)
+        );
+
+        if (response.status === 401) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Unable to load this material.');
+        }
+
+        material = data.material || data;
+
+        if (!material || !Array.isArray(material.questions)) {
+            throw new Error('The material data is incomplete.');
+        }
+
+        if (material.status !== 'published') {
+            throw new Error('This material is not published.');
+        }
+
+        questions = material.questions;
+
+        if (questions.length === 0) {
+            throw new Error('This material has no questions or cards.');
+        }
+
+        document.getElementById('materialTitle').textContent = material.title;
+        document.getElementById('materialDescription').textContent =
+            material.description || '';
+
+        document.getElementById('materialType').textContent =
+            material.material_type === 'exam'
+                ? 'Online Examination'
+                : material.material_type === 'flashcard'
+                    ? 'Flashcard Review'
+                    : 'Online Quiz';
+
+        if (material.material_type === 'flashcard') {
+            startFlashcards();
+        } else if (['quiz', 'exam'].includes(material.material_type)) {
+            startAssessment();
+        } else {
+            throw new Error('Invalid material type.');
+        }
+
+    } catch (error) {
+        console.error('Load material error:', error);
+        showError(error.message);
+    }
+}
+
+function startAssessment() {
+    const invalidQuestion = questions.some(question =>
+        !question ||
+        !question.question ||
+        !Array.isArray(question.options) ||
+        question.options.length !== 4 ||
+        question.options.some(option =>
+            typeof option !== 'string' || !option.trim()
+        )
+    );
+
+    if (invalidQuestion) {
+        showError('Some questions or choices are incomplete.');
+        return;
+    }
+
+    questionOrder = shuffle(questions.map((question, index) => index));
+    answers = new Array(questions.length).fill(null);
+    currentIndex = 0;
+
+    document.getElementById('assessmentPanel').classList.remove('hidden');
+    renderQuestion();
+}
+
+function renderQuestion() {
+    const originalIndex = questionOrder[currentIndex];
+    const question = questions[originalIndex];
+
+    document.getElementById('questionNumber').textContent =
+        'Question ' + (currentIndex + 1);
+
+    document.getElementById('questionText').textContent =
+        question.question;
+
+    document.getElementById('progressText').textContent =
+        'Question ' + (currentIndex + 1) + ' of ' + questions.length;
+
+    const percentage = Math.round(
+        ((currentIndex + 1) / questions.length) * 100
+    );
+
+    document.getElementById('progressPercent').textContent =
+        percentage + '%';
+
+    document.getElementById('progressFill').style.width =
+        percentage + '%';
+
+    const choices = document.getElementById('choices');
+    choices.innerHTML = '';
+
+    question.options.forEach((option, index) => {
+        const label = document.createElement('label');
+        label.className = 'choice';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'answer';
+        radio.value = index;
+        radio.checked = answers[originalIndex] === index;
+
+        if (radio.checked) {
+            label.classList.add('selected');
+        }
+
+        radio.addEventListener('change', () => {
+            answers[originalIndex] = index;
+
+            choices.querySelectorAll('.choice').forEach(choice => {
+                choice.classList.remove('selected');
+            });
+
+            label.classList.add('selected');
+        });
+
+        const span = document.createElement('span');
+        span.textContent = ['A. ', 'B. ', 'C. ', 'D. '][index] + option;
+
+        label.appendChild(radio);
+        label.appendChild(span);
+        choices.appendChild(label);
+    });
+
+    document.getElementById('previousButton').disabled =
+        currentIndex === 0;
+
+    const isLast = currentIndex === questions.length - 1;
+
+    document.getElementById('nextButton').classList.toggle('hidden', isLast);
+    document.getElementById('submitButton').classList.toggle('hidden', !isLast);
+}
+
+function previousQuestion() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion();
+    }
+}
+
+function nextQuestion() {
+    if (currentIndex < questions.length - 1) {
+        currentIndex++;
+        renderQuestion();
+    }
+}
+
+async function submitAssessment() {
+    if (submissionCompleted) return;
+
+    const unanswered = answers.findIndex(answer => answer === null);
+
+    if (unanswered !== -1) {
+        const displayPosition = questionOrder.indexOf(unanswered) + 1;
+
+        alert(
+            'Please answer all questions. Question ' +
+            displayPosition + ' is unanswered.'
+        );
+
+        currentIndex = questionOrder.indexOf(unanswered);
+        renderQuestion();
+        return;
+    }
+
+    if (!confirm('Are you sure you want to submit your answers?')) {
+        return;
+    }
+
+    const submitButton = document.getElementById('submitButton');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Grading Answers...';
+
+    try {
+        const response = await fetch(
+            '/api/materials/' + encodeURIComponent(materialId) + '/submit',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ answers })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Unable to submit your answers.');
+        }
+
+        const savedResult = data.result || data;
+
+        const score = Number(savedResult.score);
+        const total = Number(savedResult.total);
+        const percentage = Number(savedResult.percentage);
+
+        if (
+            !Number.isFinite(score) ||
+            !Number.isFinite(total) ||
+            total <= 0 ||
+            !Number.isFinite(percentage)
+        ) {
+            throw new Error('The server returned invalid score information.');
+        }
+
+        submissionCompleted = true;
+
+        document.getElementById('assessmentPanel').classList.add('hidden');
+
+        document.getElementById('resultPanel').style.display = 'block';
+
+        document.getElementById('scoreText').textContent =
+            score + ' / ' + total;
+
+        document.getElementById('percentageText').textContent =
+            percentage + '%';
+
+        document.getElementById('resultTitle').textContent =
+            savedResult.title || material.title;
+
+        document.getElementById('resultStatus').textContent =
+            'Successfully Saved';
+
+        document.getElementById('resultDate').textContent =
+            new Date().toLocaleString();
+
+        document.getElementById('resultMessage').textContent =
+            data.message || 'Your result has been graded and saved successfully.';
+
+    } catch (error) {
+        console.error('Submission error:', error);
+        alert(error.message);
+
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit';
+    }
+}
+</script>
+
+<script>
+
+// =====================================
+// START FLASHCARDS
+// =====================================
+
+function startFlashcards() {
+    const invalidCard = questions.some(question =>
+        !question ||
+        typeof question.term !== 'string' ||
+        typeof question.answer !== 'string'
+    );
+
+    if (invalidCard) {
+        showError('Some flashcards are incomplete.');
+        return;
+    }
+
+    questions = shuffle(questions);
+    currentCard = 0;
+
+    document.getElementById('flashcardPanel')
+        .classList.remove('hidden');
+
+    renderFlashcard();
+}
+
+
+// =====================================
+// DISPLAY FLASHCARD
+// =====================================
+
+function renderFlashcard() {
+    const card = questions[currentCard];
+
+    answerRevealed = false;
+
+    document.getElementById('flashcardSide').textContent =
+        'FRONT';
+
+    document.getElementById('flashcardText').textContent =
+        card.term;
+
+    document.getElementById('flashcardAnswerText').textContent =
+        card.answer;
+
+    document.getElementById('flashcardAnswer').style.display =
+        'none';
+
+    document.getElementById('revealButton')
+        .classList.remove('hidden');
+
+    document.getElementById('flashcardProgress').textContent =
+        'Card ' + (currentCard + 1) +
+        ' of ' + questions.length;
+
+    const percentage = Math.round(
+        ((currentCard + 1) / questions.length) * 100
+    );
+
+    document.getElementById('flashcardPercent').textContent =
+        percentage + '%';
+
+    document.getElementById('flashcardProgressFill').style.width =
+        percentage + '%';
+
+    document.getElementById('nextCardButton').textContent =
+        currentCard === questions.length - 1
+            ? 'Finish Review'
+            : 'Next Card';
+}
+
+
+// =====================================
+// REVEAL ANSWER
+// =====================================
+
+function revealAnswer() {
+    if (answerRevealed) return;
+
+    answerRevealed = true;
+
+    document.getElementById('flashcardSide').textContent =
+        'BACK';
+
+    document.getElementById('flashcardAnswer').style.display =
+        'block';
+
+    document.getElementById('revealButton')
+        .classList.add('hidden');
+}
+
+
+// =====================================
+// NEXT FLASHCARD
+// =====================================
+
+function nextCard() {
+    if (currentCard === questions.length - 1) {
+        alert('You have completed the flashcard review!');
+        window.location.href = 'dashboard.html';
+        return;
+    }
+
+    currentCard++;
+    renderFlashcard();
+}
+
+
+// =====================================
+// INITIALIZE PAGE
+// =====================================
+
+loadMaterial();
+
+</script>
+</body>
+</html>
