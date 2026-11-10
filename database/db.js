@@ -1,4 +1,3 @@
-
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -20,7 +19,6 @@ async function initializeDatabase() {
     const client = await pool.connect();
 
     try {
-        // STUDENTS AND TEACHERS TABLE
         await client.query(`
             CREATE TABLE IF NOT EXISTS students (
                 id SERIAL PRIMARY KEY,
@@ -34,9 +32,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // MIGRATE EXISTING ACCOUNTS
-        // Student ID and email are now optional at database level.
-        // The server will validate which field is required per role.
         await client.query(`
             ALTER TABLE students
             ALTER COLUMN student_id DROP NOT NULL
@@ -57,13 +52,11 @@ async function initializeDatabase() {
             ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE
         `);
 
-        // VALIDATE ACCOUNT ROLES
         await client.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (
-                    SELECT 1
-                    FROM pg_constraint
+                    SELECT 1 FROM pg_constraint
                     WHERE conname = 'students_role_check'
                 ) THEN
                     ALTER TABLE students
@@ -74,8 +67,6 @@ async function initializeDatabase() {
             $$;
         `);
 
-        // TEACHER EMAIL VERIFICATION
-        // Verification codes and passwords must be hashed by server.js.
         await client.query(`
             CREATE TABLE IF NOT EXISTS teacher_email_verifications (
                 id SERIAL PRIMARY KEY,
@@ -89,7 +80,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // QUIZ RESULTS
         await client.query(`
             CREATE TABLE IF NOT EXISTS quiz_results (
                 id SERIAL PRIMARY KEY,
@@ -102,7 +92,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // EXAM RESULTS
         await client.query(`
             CREATE TABLE IF NOT EXISTS exam_results (
                 id SERIAL PRIMARY KEY,
@@ -115,7 +104,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // CREATED QUIZZES, EXAMINATIONS, AND FLASHCARDS
         await client.query(`
             CREATE TABLE IF NOT EXISTS created_materials (
                 id SERIAL PRIMARY KEY,
@@ -137,7 +125,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // RESULTS FOR CUSTOM MATERIALS
         await client.query(`
             CREATE TABLE IF NOT EXISTS material_results (
                 id SERIAL PRIMARY KEY,
@@ -152,7 +139,79 @@ async function initializeDatabase() {
             )
         `);
 
+        // ==========================================
+        // PERMANENT QUIZ AND EXAM COMPLETION RECORDS
+        // ==========================================
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS assessment_completions (
+                id SERIAL PRIMARY KEY,
+                student_id INTEGER NOT NULL
+                    REFERENCES students(id) ON DELETE CASCADE,
+                assessment_type TEXT NOT NULL
+                    CHECK (
+                        assessment_type IN ('quiz', 'exam', 'material')
+                    ),
+                assessment_id TEXT NOT NULL,
+                completed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                CONSTRAINT unique_student_assessment
+                UNIQUE (student_id, assessment_type, assessment_id)
+            )
+        `);
+
+        // Mark existing built-in quiz submissions as DONE.
+        await client.query(`
+            INSERT INTO assessment_completions
+                (student_id, assessment_type, assessment_id)
+            SELECT DISTINCT
+                student_id,
+                'quiz',
+                'builtin'
+            FROM quiz_results
+            ON CONFLICT (
+                student_id,
+                assessment_type,
+                assessment_id
+            ) DO NOTHING
+        `);
+
+        // Mark existing built-in exam submissions as DONE.
+        await client.query(`
+            INSERT INTO assessment_completions
+                (student_id, assessment_type, assessment_id)
+            SELECT DISTINCT
+                student_id,
+                'exam',
+                'builtin'
+            FROM exam_results
+            ON CONFLICT (
+                student_id,
+                assessment_type,
+                assessment_id
+            ) DO NOTHING
+        `);
+
+        // Mark existing published custom quiz/exam submissions as DONE.
+        await client.query(`
+            INSERT INTO assessment_completions
+                (student_id, assessment_type, assessment_id)
+            SELECT DISTINCT
+                student_id,
+                'material',
+                material_id::TEXT
+            FROM material_results
+            ON CONFLICT (
+                student_id,
+                assessment_type,
+                assessment_id
+            ) DO NOTHING
+        `);
+
+        // ==========================================
         // INDEXES
+        // ==========================================
+
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_created_materials_creator
             ON created_materials(creator_id)
@@ -183,10 +242,16 @@ async function initializeDatabase() {
             ON teacher_email_verifications(expires_at)
         `);
 
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_assessment_completions_student
+            ON assessment_completions(student_id)
+        `);
+
         console.log('PostgreSQL database connected successfully!');
         console.log('Student and Teacher account tables are ready!');
         console.log('Teacher email verification table is ready!');
         console.log('Quiz, Exam, and Material tables are ready!');
+        console.log('Permanent assessment completion table is ready!');
 
     } catch (error) {
         console.error('Database initialization error:', error);

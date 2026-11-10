@@ -1,0 +1,26 @@
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/package.json b/package.json[m
+[1mindex acf21d3..5d9e74e 100644[m
+[1m--- a/package.json[m
+[1m+++ b/package.json[m
+[36m@@ -1,10 +1,10 @@[m
+ {[m
+   "name": "quizexaminationsystem",[m
+   "version": "1.0.0",[m
+[31m-  "description": "",[m
+[31m-  "main": "index.js",[m
+[32m+[m[32m  "description": "Flashcard-Style Online Quiz and Examination System",[m
+[32m+[m[32m  "main": "server.js",[m
+   "scripts": {[m
+[31m-    "test": "echo \"Error: no test specified\" && exit 1"[m
+[32m+[m[32m    "start": "node server.js"[m
+   },[m
+   "keywords": [],[m
+   "author": "",[m
+[36m@@ -15,4 +15,4 @@[m
+     "express-session": "^1.19.0",[m
+     "sql.js": "^1.15.2"[m
+   }[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m

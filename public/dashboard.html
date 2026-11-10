@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -413,8 +414,8 @@
 
         <div class="card">
             <h3>Online Quiz</h3>
-            <p>Browse and take published quizzes created by users.</p>
-            <button onclick="goToAvailableMaterials('quiz')">
+            <p id="quizCardDescription">Browse and take published quizzes created by users.</p>
+            <button id="quizCardButton" onclick="goToAvailableMaterials('quiz')">
                 View Available Quizzes
             </button>
         </div>
@@ -429,8 +430,8 @@
 
         <div class="card">
             <h3>Online Examination</h3>
-            <p>Browse and take published examinations.</p>
-            <button onclick="goToAvailableMaterials('exam')">
+            <p id="examCardDescription">Browse and take published examinations.</p>
+            <button id="examCardButton" onclick="goToAvailableMaterials('exam')">
                 View Available Exams
             </button>
         </div>
@@ -609,6 +610,22 @@
             isTeacher
                 ? 'Create, publish, and manage your learning materials.'
                 : 'Welcome to your online quiz and examination system.';
+
+        document.getElementById('quizCardDescription').textContent =
+            isTeacher
+                ? 'View published quizzes created by teachers and students.'
+                : 'Browse and take published quizzes created by users.';
+
+        document.getElementById('examCardDescription').textContent =
+            isTeacher
+                ? 'View published examinations without taking them.'
+                : 'Browse and take published examinations.';
+
+        document.getElementById('quizCardButton').textContent =
+            'View Available Quizzes';
+
+        document.getElementById('examCardButton').textContent =
+            'View Available Exams';
     }
 
     // =====================================
@@ -668,8 +685,8 @@
         closeSettingsMenu();
 
         const filter = document.getElementById('materialFilter');
-
         filter.value = type;
+
         loadAvailableMaterials();
 
         document.getElementById('availableMaterialsSection')
@@ -698,6 +715,7 @@
 
     // =====================================
     // LOAD AVAILABLE MATERIALS
+    // UPDATED: ONE REQUEST + DUPLICATE CHECK
     // =====================================
 
     async function loadAvailableMaterials() {
@@ -707,45 +725,62 @@
         const filter =
             document.getElementById('materialFilter').value;
 
+        const isTeacher =
+            currentUserRole === 'teacher';
+
         container.innerHTML =
             '<div class="empty-message">Loading materials...</div>';
 
         try {
-            const types = filter === 'all'
-                ? ['quiz', 'exam', 'flashcard']
-                : [filter];
+            // Fetch all published materials only once.
+            const response = await fetch('/api/materials', {
+                cache: 'no-store'
+            });
 
-            const responses = await Promise.all(
-                types.map(type =>
-                    fetch('/api/materials?type=' + encodeURIComponent(type))
-                )
-            );
-
-            let allMaterials = [];
-
-            for (const response of responses) {
-                if (!response.ok) {
-                    throw new Error('Unable to load published materials.');
-                }
-
-                const data = await response.json();
-
-                const materials = Array.isArray(data)
-                    ? data
-                    : (data.materials || []);
-
-                allMaterials = allMaterials.concat(materials);
+            if (!response.ok) {
+                throw new Error('Unable to load published materials.');
             }
 
-            // Show newest materials first.
-            allMaterials.sort((a, b) => {
-                return new Date(b.created_at || 0) -
-                       new Date(a.created_at || 0);
+            const data = await response.json();
+
+            let materials = Array.isArray(data)
+                ? data
+                : Array.isArray(data.materials)
+                    ? data.materials
+                    : [];
+
+            // Remove duplicate records with the same database ID.
+            const uniqueMaterials = new Map();
+
+            materials.forEach(material => {
+                if (material.id === undefined || material.id === null) {
+                    return;
+                }
+
+                uniqueMaterials.set(
+                    String(material.id),
+                    material
+                );
             });
+
+            materials = Array.from(uniqueMaterials.values());
+
+            // Show only the selected material type.
+            if (filter !== 'all') {
+                materials = materials.filter(material =>
+                    String(material.material_type || '').toLowerCase() === filter
+                );
+            }
+
+            // Sort newest materials first.
+            materials.sort((a, b) =>
+                new Date(b.created_at || 0) -
+                new Date(a.created_at || 0)
+            );
 
             container.innerHTML = '';
 
-            if (allMaterials.length === 0) {
+            if (materials.length === 0) {
                 container.innerHTML =
                     '<div class="empty-message">' +
                     'No published materials available yet.' +
@@ -753,54 +788,84 @@
                 return;
             }
 
-            allMaterials.forEach(material => {
+            materials.forEach(material => {
                 const card = document.createElement('div');
                 card.className = 'material-card';
 
+                const materialType =
+                    String(material.material_type || '').toLowerCase();
+
+                // Material type label.
                 const type = document.createElement('span');
                 type.className = 'material-type';
 
-                type.textContent =
-                    material.material_type === 'exam'
-                        ? 'Online Examination'
-                        : material.material_type === 'flashcard'
-                            ? 'Flashcard Review'
-                            : 'Online Quiz';
+                if (materialType === 'exam') {
+                    type.textContent = 'Online Examination';
+                } else if (materialType === 'flashcard') {
+                    type.textContent = 'Flashcard Review';
+                } else if (materialType === 'quiz') {
+                    type.textContent = 'Online Quiz';
+                } else {
+                    return;
+                }
 
+                // Material title.
                 const title = document.createElement('h3');
-                title.textContent = material.title || 'Untitled Material';
+                title.textContent =
+                    material.title || 'Untitled Material';
 
+                // Material description.
                 const description = document.createElement('p');
                 description.textContent =
                     material.description || 'No description provided.';
 
+                // Creator name.
                 const creator = document.createElement('p');
                 creator.textContent =
                     'Created by: ' +
                     (material.creator_name || 'Unknown');
 
+                // Number of questions or flashcards.
                 const count = document.createElement('p');
-
                 const total = Number(material.item_count || 0);
 
                 count.textContent =
                     total + (
-                        material.material_type === 'flashcard'
+                        materialType === 'flashcard'
                             ? ' flashcards'
                             : ' questions'
                     );
 
+                // Open material button.
                 const openButton = document.createElement('button');
 
-                openButton.textContent =
-                    material.material_type === 'flashcard'
-                        ? 'Review Flashcards'
-                        : 'Start Material';
+                if (isTeacher) {
+                    openButton.textContent =
+                        materialType === 'exam'
+                            ? 'View Exam'
+                            : materialType === 'flashcard'
+                                ? 'View Flashcards'
+                                : 'View Quiz';
+                } else {
+                    openButton.textContent =
+                        materialType === 'exam'
+                            ? 'Start Exam'
+                            : materialType === 'flashcard'
+                                ? 'Review Flashcards'
+                                : 'Start Quiz';
+                }
 
                 openButton.addEventListener('click', () => {
-                    window.location.href =
-                        'take-material.html?id=' +
+                    const materialId =
                         encodeURIComponent(material.id);
+
+                    if (isTeacher) {
+                        window.location.href =
+                            'view-material.html?id=' + materialId;
+                    } else {
+                        window.location.href =
+                            'take-material.html?id=' + materialId;
+                    }
                 });
 
                 card.appendChild(type);

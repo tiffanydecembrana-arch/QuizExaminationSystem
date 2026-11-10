@@ -4,12 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Take Learning Material</title>
+    <title>View Learning Material</title>
 
     <style>
         * {
             box-sizing: border-box;
             font-family: Arial, sans-serif;
+        }
+
+        [hidden],
+        .hidden {
+            display: none !important;
         }
 
         body {
@@ -52,7 +57,8 @@
             cursor: not-allowed;
         }
 
-        .back-button {
+        .back-button,
+        .secondary-button {
             background: white;
             color: #16834A;
         }
@@ -75,8 +81,19 @@
             color: #0B5D35;
         }
 
-        .material-description {
+        .description {
             color: #64748b;
+            line-height: 1.5;
+        }
+
+        .view-notice {
+            background: #EAF7EF;
+            border-left: 4px solid #16834A;
+            padding: 13px;
+            border-radius: 6px;
+            color: #0B5D35;
+            margin-top: 18px;
+            line-height: 1.5;
         }
 
         .progress-area {
@@ -116,6 +133,7 @@
             color: #0B5D35;
             font-weight: bold;
             overflow-wrap: anywhere;
+            margin-top: 12px;
         }
 
         .choices {
@@ -131,22 +149,18 @@
             padding: 15px;
             border: 2px solid #dcefe3;
             border-radius: 9px;
-            cursor: pointer;
+            background: #ffffff;
         }
 
-        .choice:hover,
-        .choice.selected {
-            background: #EAF7EF;
-            border-color: #16834A;
+        .choice-letter {
+            color: #16834A;
+            font-weight: bold;
+            min-width: 22px;
         }
 
-        .choice input {
-            margin-top: 3px;
-            accent-color: #16834A;
-        }
-
-        .choice span {
+        .choice-text {
             overflow-wrap: anywhere;
+            line-height: 1.5;
         }
 
         .navigation {
@@ -160,67 +174,33 @@
             min-width: 110px;
         }
 
-        .secondary-button {
-            background: #64748b;
-        }
-
-        .flashcard-front {
-            background: #EAF7EF;
-            border: 2px solid #16834A;
-            border-radius: 12px;
-            padding: 35px 20px;
-            text-align: center;
-            min-height: 180px;
-        }
-
-        .flashcard-front p {
-            font-size: 21px;
-            font-weight: bold;
-            overflow-wrap: anywhere;
-        }
-
-        .flashcard-actions {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .answer-box {
-            background: #EAF7EF;
-            padding: 18px;
+        .flashcard-content {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            padding: 25px;
             border-radius: 10px;
             margin-top: 20px;
-            display: none;
         }
 
-        .answer-box strong {
-            color: #0B5D35;
-        }
-
-        .result {
-            text-align: center;
-            display: none;
-        }
-
-        .score {
+        .flashcard-label {
             color: #16834A;
-            font-size: 42px;
             font-weight: bold;
-            margin: 15px 0;
+            margin-bottom: 10px;
         }
 
-        .result-detail {
-            background: #EAF7EF;
-            padding: 15px;
-            border-radius: 9px;
-            margin: 20px 0;
-            line-height: 1.8;
+        .flashcard-question,
+        .flashcard-answer {
+            font-size: 19px;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+            color: #1e293b;
         }
 
-        .hidden {
-            display: none !important;
+        .flashcard-answer {
+            background: white;
+            padding: 18px;
+            border-radius: 8px;
+            margin-top: 20px;
         }
 
         .error {
@@ -229,6 +209,7 @@
             padding: 30px;
             text-align: center;
             color: #b91c1c;
+            line-height: 1.5;
         }
 
         @media (max-width: 600px) {
@@ -261,9 +242,9 @@
 <body>
 
 <header>
-    <h1>Learning Material</h1>
-    <button class="back-button"
-        onclick="window.location.href='dashboard.html'">
+    <h1>View Learning Material</h1>
+
+    <button class="back-button" onclick="goBack()">
         Back to Dashboard
     </button>
 </header>
@@ -272,11 +253,22 @@
 
     <div class="panel" id="materialInformation">
         <h2 id="materialTitle">Loading material...</h2>
-        <p class="material-description" id="materialDescription"></p>
+
+        <p class="description" id="materialDescription"></p>
+
         <p id="materialType"></p>
+
+        <div class="view-notice">
+            <strong>Teacher View Only</strong><br>
+            You can view the published learning material, questions,
+            choices, and flashcard answers. Answering and submitting
+            assessments are not available.
+        </div>
     </div>
 
-    <div class="panel hidden" id="assessmentPanel">
+    <!-- QUIZ AND EXAMINATION VIEW -->
+
+    <div class="panel hidden" id="questionPanel">
 
         <div class="progress-area">
             <div class="progress-info">
@@ -289,11 +281,11 @@
             </div>
         </div>
 
-        <div id="questionArea">
-            <p class="question-number" id="questionNumber"></p>
-            <div class="question-text" id="questionText"></div>
-            <div class="choices" id="choices"></div>
-        </div>
+        <p class="question-number" id="questionNumber"></p>
+
+        <div class="question-text" id="questionText"></div>
+
+        <div class="choices" id="choices"></div>
 
         <div class="navigation">
             <button class="secondary-button"
@@ -305,505 +297,1186 @@
             <button id="nextButton" onclick="nextQuestion()">
                 Next
             </button>
-
-            <button id="submitButton"
-                class="hidden"
-                onclick="submitAssessment()">
-                Submit
-            </button>
         </div>
 
     </div>
+
+    <!-- FLASHCARD VIEW -->
 
     <div class="panel hidden" id="flashcardPanel">
 
         <div class="progress-area">
             <div class="progress-info">
-                <span id="flashcardProgress">Card 1</span>
-                <span id="flashcardPercent">0%</span>
+                <span id="flashcardProgressText">Card 1</span>
+                <span id="flashcardProgressPercent">0%</span>
             </div>
 
             <div class="progress-bar">
-                <div class="progress-fill"
-                    id="flashcardProgressFill"></div>
+                <div class="progress-fill" id="flashcardProgressFill"></div>
             </div>
         </div>
 
-        <div class="flashcard-front">
-            <h2 id="flashcardSide">FRONT</h2>
-            <p id="flashcardText"></p>
+        <div class="flashcard-content">
+
+            <div class="flashcard-label">QUESTION / TERM</div>
+
+            <div class="flashcard-question" id="flashcardQuestion"></div>
+
+            <div class="flashcard-answer">
+                <div class="flashcard-label">ANSWER / DEFINITION</div>
+
+                <div class="flashcard-answer-text" id="flashcardAnswer"></div>
+            </div>
+
         </div>
 
-        <div class="answer-box" id="flashcardAnswer">
-            <strong>Answer:</strong>
-            <p id="flashcardAnswerText"></p>
-        </div>
-
-        <div class="flashcard-actions">
-            <button id="revealButton" onclick="revealAnswer()">
-                Show Answer
-            </button>
+        <div class="navigation">
 
             <button class="secondary-button"
-                id="nextCardButton"
-                onclick="nextCard()">
-                Next Card
+                id="previousFlashcardButton"
+                onclick="previousFlashcard()">
+                Previous
             </button>
+
+            <button id="nextFlashcardButton"
+                onclick="nextFlashcard()">
+                Next
+            </button>
+
         </div>
 
-    </div>
-
-    <div class="panel result" id="resultPanel">
-        <h2>Assessment Completed!</h2>
-        <p>Your score is:</p>
-
-        <div class="score" id="scoreText">0 / 0</div>
-        <h3 id="percentageText">0%</h3>
-
-        <div class="result-detail">
-            <p><strong>Material:</strong>
-                <span id="resultTitle"></span>
-            </p>
-
-            <p><strong>Result:</strong>
-                <span id="resultStatus">Saved</span>
-            </p>
-
-            <p><strong>Date Submitted:</strong>
-                <span id="resultDate"></span>
-            </p>
-        </div>
-
-        <p id="resultMessage">
-            Your result has been saved successfully.
-        </p>
-
-        <button onclick="window.location.href='results.html'">
-            View My Results
-        </button>
-
-        <button class="secondary-button"
-            onclick="window.location.href='dashboard.html'">
-            Dashboard
-        </button>
     </div>
 
     <div class="error hidden" id="errorPanel"></div>
 
 </div>
-</body>
 
 <script>
-const materialId = new URLSearchParams(window.location.search).get('id');
+    const materialId = new URLSearchParams(
+        window.location.search
+    ).get("id");
 
-let material = null;
-let questions = [];
-let questionOrder = [];
-let currentIndex = 0;
-let answers = [];
-let currentCard = 0;
-let answerRevealed = false;
-let submissionCompleted = false;
+    let material = null;
+    let questions = [];
+    let currentIndex = 0;
+    let materialType = "";
 
-function shuffle(array) {
-    const result = [...array];
-
-    for (let i = result.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [result[i], result[j]] = [result[j], result[i]];
+    function goBack() {
+        window.location.href = "dashboard.html";
     }
 
-    return result;
-}
+    function showError(message) {
+        document.getElementById("materialInformation")
+            .classList.add("hidden");
 
-function showError(message) {
-    document.getElementById('materialInformation').classList.add('hidden');
-    document.getElementById('assessmentPanel').classList.add('hidden');
-    document.getElementById('flashcardPanel').classList.add('hidden');
-    document.getElementById('resultPanel').style.display = 'none';
+        document.getElementById("questionPanel")
+            .classList.add("hidden");
 
-    const errorPanel = document.getElementById('errorPanel');
-    errorPanel.textContent = message;
-    errorPanel.classList.remove('hidden');
-}
+        document.getElementById("flashcardPanel")
+            .classList.add("hidden");
 
-async function loadMaterial() {
-    if (!materialId) {
-        showError('No material ID was provided.');
-        return;
+        const errorPanel = document.getElementById("errorPanel");
+
+        errorPanel.textContent = message;
+        errorPanel.classList.remove("hidden");
     }
 
-    try {
-        const response = await fetch(
-            '/api/materials/' + encodeURIComponent(materialId)
-        );
+    async function requestJSON(url) {
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store"
+        });
 
-        if (response.status === 401) {
-            window.location.href = 'login.html';
+        const text = await response.text();
+
+        let data;
+
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            throw new Error("The server returned an invalid response.");
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                data.error ||
+                "Unable to load the requested information."
+            );
+        }
+
+        return data;
+    }
+
+    function normalizeRoleResponse(data) {
+        const account = data.student || data.user || data;
+        return String(account.role || "").toLowerCase();
+    }
+
+    function getMaterialType(data) {
+        return String(
+            data.material_type ||
+            data.type ||
+            data.materialType ||
+            ""
+        ).toLowerCase();
+    }
+
+    function getMaterialQuestions(data) {
+        if (Array.isArray(data.questions)) {
+            return data.questions;
+        }
+
+        if (Array.isArray(data.items)) {
+            return data.items;
+        }
+
+        return [];
+    }
+
+    function getQuestionText(question) {
+        return question.question ||
+            question.question_text ||
+            question.text ||
+            question.term ||
+            "";
+    }
+
+    function getQuestionOptions(question) {
+        if (Array.isArray(question.options)) {
+            return question.options;
+        }
+
+        if (Array.isArray(question.choices)) {
+            return question.choices;
+        }
+
+        return [
+            question.option_a,
+            question.option_b,
+            question.option_c,
+            question.option_d
+        ].filter(option => option !== undefined && option !== null);
+    }
+
+    function getFlashcardAnswer(question) {
+        return question.answer ??
+            question.definition ??
+            question.description ??
+            question.back ??
+            "";
+    }
+
+    async function loadMaterial() {
+        if (!materialId) {
+            showError("No material ID was provided.");
             return;
         }
 
-        const data = await response.json();
+        try {
+            // STEP 1: Verify teacher account.
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Unable to load this material.');
+            const userData = await requestJSON("/api/student");
+
+            const role = normalizeRoleResponse(userData);
+
+            if (role !== "teacher") {
+                if (role === "student") {
+                    window.location.href =
+                        "take-material.html?id=" +
+                        encodeURIComponent(materialId);
+                } else {
+                    window.location.href = "dashboard.html";
+                }
+
+                return;
+            }
+
+            // STEP 2: Request teacher read-only material data.
+
+            const data = await requestJSON(
+                "/api/materials/" +
+                encodeURIComponent(materialId) +
+                "/teacher-view"
+            );
+
+            material = data.material || data;
+
+            if (!material) {
+                throw new Error("Material not found.");
+            }
+
+            materialType = getMaterialType(material);
+
+            const publishedStatus = String(
+                material.status || ""
+            ).toLowerCase();
+
+            if (publishedStatus !== "published") {
+                throw new Error(
+                    "Only published materials can be viewed."
+                );
+            }
+
+            questions = getMaterialQuestions(material);
+
+            if (questions.length === 0) {
+                throw new Error(
+                    "This material has no questions or flashcards."
+                );
+            }
+
+            // STEP 3: Display material information.
+
+            document.getElementById("materialTitle").textContent =
+                material.title || material.name || "Untitled Material";
+
+            document.getElementById("materialDescription").textContent =
+                material.description || "No description available.";
+
+            document.getElementById("materialInformation")
+                .classList.remove("hidden");
+
+            // STEP 4: Determine material type.
+
+            if (
+                materialType.includes("flashcard") ||
+                materialType.includes("flash card")
+            ) {
+                document.getElementById("materialType").textContent =
+                    "Flashcard Review";
+
+                document.getElementById("flashcardPanel")
+                    .classList.remove("hidden");
+
+                currentIndex = 0;
+                renderFlashcard();
+
+            } else if (
+                materialType.includes("quiz") ||
+                materialType.includes("exam") ||
+                materialType.includes("examination")
+            ) {
+                document.getElementById("materialType").textContent =
+                    materialType.includes("exam")
+                        ? "Online Examination"
+                        : "Online Quiz";
+
+                const invalidQuestion = questions.some(question => {
+                    const options = getQuestionOptions(question);
+
+                    return (
+                        !question ||
+                        !getQuestionText(question) ||
+                        options.length === 0
+                    );
+                });
+
+                if (invalidQuestion) {
+                    throw new Error(
+                        "Some questions or choices are incomplete."
+                    );
+                }
+
+                document.getElementById("questionPanel")
+                    .classList.remove("hidden");
+
+                currentIndex = 0;
+                renderQuestion();
+
+            } else {
+                throw new Error(
+                    "This type of learning material is not supported."
+                );
+            }
+
+        } catch (error) {
+            console.error("Teacher view error:", error);
+            showError(error.message);
         }
-
-        material = data.material || data;
-
-        if (!material || !Array.isArray(material.questions)) {
-            throw new Error('The material data is incomplete.');
-        }
-
-        if (material.status !== 'published') {
-            throw new Error('This material is not published.');
-        }
-
-        questions = material.questions;
-
-        if (questions.length === 0) {
-            throw new Error('This material has no questions or cards.');
-        }
-
-        document.getElementById('materialTitle').textContent = material.title;
-        document.getElementById('materialDescription').textContent =
-            material.description || '';
-
-        document.getElementById('materialType').textContent =
-            material.material_type === 'exam'
-                ? 'Online Examination'
-                : material.material_type === 'flashcard'
-                    ? 'Flashcard Review'
-                    : 'Online Quiz';
-
-        if (material.material_type === 'flashcard') {
-            startFlashcards();
-        } else if (['quiz', 'exam'].includes(material.material_type)) {
-            startAssessment();
-        } else {
-            throw new Error('Invalid material type.');
-        }
-
-    } catch (error) {
-        console.error('Load material error:', error);
-        showError(error.message);
     }
-}
 
-function startAssessment() {
-    const invalidQuestion = questions.some(question =>
-        !question ||
-        !question.question ||
-        !Array.isArray(question.options) ||
-        question.options.length !== 4 ||
-        question.options.some(option =>
-            typeof option !== 'string' || !option.trim()
-        )
-    );
+    // QUIZ AND EXAMINATION DISPLAY
 
-    if (invalidQuestion) {
-        showError('Some questions or choices are incomplete.');
-        return;
-    }
+    function renderQuestion() {
+        const question = questions[currentIndex];
 
-    questionOrder = shuffle(questions.map((question, index) => index));
-    answers = new Array(questions.length).fill(null);
-    currentIndex = 0;
+        if (!question) return;
 
-    document.getElementById('assessmentPanel').classList.remove('hidden');
-    renderQuestion();
-}
+        document.getElementById("questionNumber").textContent =
+            "Question " + (currentIndex + 1);
 
-function renderQuestion() {
-    const originalIndex = questionOrder[currentIndex];
-    const question = questions[originalIndex];
+        document.getElementById("questionText").textContent =
+            getQuestionText(question);
 
-    document.getElementById('questionNumber').textContent =
-        'Question ' + (currentIndex + 1);
+        document.getElementById("progressText").textContent =
+            "Question " + (currentIndex + 1) +
+            " of " + questions.length;
 
-    document.getElementById('questionText').textContent =
-        question.question;
+        const percentage = Math.round(
+            ((currentIndex + 1) / questions.length) * 100
+        );
 
-    document.getElementById('progressText').textContent =
-        'Question ' + (currentIndex + 1) + ' of ' + questions.length;
+        document.getElementById("progressPercent").textContent =
+            percentage + "%";
 
-    const percentage = Math.round(
-        ((currentIndex + 1) / questions.length) * 100
-    );
+        document.getElementById("progressFill").style.width =
+            percentage + "%";
 
-    document.getElementById('progressPercent').textContent =
-        percentage + '%';
+        const choicesContainer =
+            document.getElementById("choices");
 
-    document.getElementById('progressFill').style.width =
-        percentage + '%';
+        choicesContainer.innerHTML = "";
 
-    const choices = document.getElementById('choices');
-    choices.innerHTML = '';
+        const options = getQuestionOptions(question);
 
-    question.options.forEach((option, index) => {
-        const label = document.createElement('label');
-        label.className = 'choice';
+        options.forEach((option, index) => {
+            const choice = document.createElement("div");
+            choice.className = "choice";
 
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'answer';
-        radio.value = index;
-        radio.checked = answers[originalIndex] === index;
+            const letter = document.createElement("span");
+            letter.className = "choice-letter";
 
-        if (radio.checked) {
-            label.classList.add('selected');
-        }
+            letter.textContent =
+                String.fromCharCode(65 + index) + ".";
 
-        radio.addEventListener('change', () => {
-            answers[originalIndex] = index;
+            const text = document.createElement("span");
+            text.className = "choice-text";
 
-            choices.querySelectorAll('.choice').forEach(choice => {
-                choice.classList.remove('selected');
-            });
+            text.textContent =
+                typeof option === "object"
+                    ? option.text || option.label || option.value || ""
+                    : option;
 
-            label.classList.add('selected');
+            choice.appendChild(letter);
+            choice.appendChild(text);
+
+            choicesContainer.appendChild(choice);
         });
 
-        const span = document.createElement('span');
-        span.textContent = ['A. ', 'B. ', 'C. ', 'D. '][index] + option;
+        document.getElementById("previousButton").disabled =
+            currentIndex === 0;
 
-        label.appendChild(radio);
-        label.appendChild(span);
-        choices.appendChild(label);
-    });
-
-    document.getElementById('previousButton').disabled =
-        currentIndex === 0;
-
-    const isLast = currentIndex === questions.length - 1;
-
-    document.getElementById('nextButton').classList.toggle('hidden', isLast);
-    document.getElementById('submitButton').classList.toggle('hidden', !isLast);
-}
-
-function previousQuestion() {
-    if (currentIndex > 0) {
-        currentIndex--;
-        renderQuestion();
+        document.getElementById("nextButton").textContent =
+            currentIndex === questions.length - 1
+                ? "Finish Viewing"
+                : "Next";
     }
-}
 
-function nextQuestion() {
-    if (currentIndex < questions.length - 1) {
-        currentIndex++;
-        renderQuestion();
+    function previousQuestion() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            renderQuestion();
+        }
     }
-}
 
-async function submitAssessment() {
-    if (submissionCompleted) return;
+    function nextQuestion() {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            renderQuestion();
+        } else {
+            goBack();
+        }
+    }
 
-    const unanswered = answers.findIndex(answer => answer === null);
+    // FLASHCARD DISPLAY
 
-    if (unanswered !== -1) {
-        const displayPosition = questionOrder.indexOf(unanswered) + 1;
+    function renderFlashcard() {
+        const card = questions[currentIndex];
 
-        alert(
-            'Please answer all questions. Question ' +
-            displayPosition + ' is unanswered.'
+        if (!card) return;
+
+        document.getElementById("flashcardQuestion").textContent =
+            getQuestionText(card);
+
+        document.getElementById("flashcardAnswer").textContent =
+            getFlashcardAnswer(card);
+
+        const percentage = Math.round(
+            ((currentIndex + 1) / questions.length) * 100
         );
 
-        currentIndex = questionOrder.indexOf(unanswered);
-        renderQuestion();
-        return;
+        document.getElementById("flashcardProgressText").textContent =
+            "Card " + (currentIndex + 1) +
+            " of " + questions.length;
+
+        document.getElementById("flashcardProgressPercent").textContent =
+            percentage + "%";
+
+        document.getElementById("flashcardProgressFill").style.width =
+            percentage + "%";
+
+        document.getElementById("previousFlashcardButton").disabled =
+            currentIndex === 0;
+
+        document.getElementById("nextFlashcardButton").textContent =
+            currentIndex === questions.length - 1
+                ? "Finish Viewing"
+                : "Next";
     }
 
-    if (!confirm('Are you sure you want to submit your answers?')) {
-        return;
-    }
-
-    const submitButton = document.getElementById('submitButton');
-    submitButton.disabled = true;
-    submitButton.textContent = 'Grading Answers...';
-
-    try {
-        const response = await fetch(
-            '/api/materials/' + encodeURIComponent(materialId) + '/submit',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ answers })
-            }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Unable to submit your answers.');
+    function previousFlashcard() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            renderFlashcard();
         }
-
-        const savedResult = data.result || data;
-
-        const score = Number(savedResult.score);
-        const total = Number(savedResult.total);
-        const percentage = Number(savedResult.percentage);
-
-        if (
-            !Number.isFinite(score) ||
-            !Number.isFinite(total) ||
-            total <= 0 ||
-            !Number.isFinite(percentage)
-        ) {
-            throw new Error('The server returned invalid score information.');
-        }
-
-        submissionCompleted = true;
-
-        document.getElementById('assessmentPanel').classList.add('hidden');
-
-        document.getElementById('resultPanel').style.display = 'block';
-
-        document.getElementById('scoreText').textContent =
-            score + ' / ' + total;
-
-        document.getElementById('percentageText').textContent =
-            percentage + '%';
-
-        document.getElementById('resultTitle').textContent =
-            savedResult.title || material.title;
-
-        document.getElementById('resultStatus').textContent =
-            'Successfully Saved';
-
-        document.getElementById('resultDate').textContent =
-            new Date().toLocaleString();
-
-        document.getElementById('resultMessage').textContent =
-            data.message || 'Your result has been graded and saved successfully.';
-
-    } catch (error) {
-        console.error('Submission error:', error);
-        alert(error.message);
-
-        submitButton.disabled = false;
-        submitButton.textContent = 'Submit';
     }
-}
+
+    function nextFlashcard() {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            renderFlashcard();
+        } else {
+            goBack();
+        }
+    }
+
+    // INITIALIZE PAGE
+
+    loadMaterial();
 </script>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Learning Material</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        [hidden],
+        .hidden {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+            background: #EAF7EF;
+            color: #334155;
+        }
+
+        header {
+            background: #16834A;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 23px;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 12px 18px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #16834A;
+            color: white;
+        }
+
+        button:hover {
+            background: #0B5D35;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .back-button,
+        .secondary-button {
+            background: white;
+            color: #16834A;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px #00000010;
+        }
+
+        h2, h3 {
+            color: #0B5D35;
+        }
+
+        .description {
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .view-notice {
+            background: #EAF7EF;
+            border-left: 4px solid #16834A;
+            padding: 13px;
+            border-radius: 6px;
+            color: #0B5D35;
+            margin-top: 18px;
+            line-height: 1.5;
+        }
+
+        .progress-area {
+            margin: 20px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #dcefe3;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            background: #16834A;
+            transition: width 0.3s;
+        }
+
+        .question-number {
+            color: #16834A;
+            font-weight: bold;
+        }
+
+        .question-text {
+            font-size: 21px;
+            line-height: 1.5;
+            color: #0B5D35;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+            margin-top: 12px;
+        }
+
+        .choices {
+            display: grid;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .choice {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 15px;
+            border: 2px solid #dcefe3;
+            border-radius: 9px;
+            background: #ffffff;
+        }
+
+        .choice-letter {
+            color: #16834A;
+            font-weight: bold;
+            min-width: 22px;
+        }
+
+        .choice-text {
+            overflow-wrap: anywhere;
+            line-height: 1.5;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .navigation button {
+            min-width: 110px;
+        }
+
+        .flashcard-content {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .flashcard-label {
+            color: #16834A;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .flashcard-question,
+        .flashcard-answer {
+            font-size: 19px;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+            color: #1e293b;
+        }
+
+        .flashcard-answer {
+            background: white;
+            padding: 18px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .error {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #b91c1c;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 12px;
+                margin: 15px auto;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+
+            .question-text {
+                font-size: 18px;
+            }
+
+            .navigation button {
+                min-width: 0;
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>View Learning Material</h1>
+
+    <button class="back-button" onclick="goBack()">
+        Back to Dashboard
+    </button>
+</header>
+
+<div class="container">
+
+    <div class="panel" id="materialInformation">
+        <h2 id="materialTitle">Loading material...</h2>
+
+        <p class="description" id="materialDescription"></p>
+
+        <p id="materialType"></p>
+
+        <div class="view-notice">
+            <strong>Teacher View Only</strong><br>
+            You can view the published learning material, questions,
+            choices, and flashcard answers. Answering and submitting
+            assessments are not available.
+        </div>
+    </div>
+
+    <!-- QUIZ AND EXAMINATION VIEW -->
+
+    <div class="panel hidden" id="questionPanel">
+
+        <div class="progress-area">
+            <div class="progress-info">
+                <span id="progressText">Question 1</span>
+                <span id="progressPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <p class="question-number" id="questionNumber"></p>
+
+        <div class="question-text" id="questionText"></div>
+
+        <div class="choices" id="choices"></div>
+
+        <div class="navigation">
+            <button class="secondary-button"
+                id="previousButton"
+                onclick="previousQuestion()">
+                Previous
+            </button>
+
+            <button id="nextButton" onclick="nextQuestion()">
+                Next
+            </button>
+        </div>
+
+    </div>
+
+    <!-- FLASHCARD VIEW -->
+
+    <div class="panel hidden" id="flashcardPanel">
+
+        <div class="progress-area">
+            <div class="progress-info">
+                <span id="flashcardProgressText">Card 1</span>
+                <span id="flashcardProgressPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="flashcardProgressFill"></div>
+            </div>
+        </div>
+
+        <div class="flashcard-content">
+
+            <div class="flashcard-label">QUESTION / TERM</div>
+
+            <div class="flashcard-question" id="flashcardQuestion"></div>
+
+            <div class="flashcard-answer">
+                <div class="flashcard-label">ANSWER / DEFINITION</div>
+
+                <div class="flashcard-answer-text" id="flashcardAnswer"></div>
+            </div>
+
+        </div>
+
+        <div class="navigation">
+
+            <button class="secondary-button"
+                id="previousFlashcardButton"
+                onclick="previousFlashcard()">
+                Previous
+            </button>
+
+            <button id="nextFlashcardButton"
+                onclick="nextFlashcard()">
+                Next
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="error hidden" id="errorPanel"></div>
+
+</div>
 
 <script>
+    const materialId = new URLSearchParams(
+        window.location.search
+    ).get("id");
 
-// =====================================
-// START FLASHCARDS
-// =====================================
+    let material = null;
+    let questions = [];
+    let currentIndex = 0;
+    let materialType = "";
 
-function startFlashcards() {
-    const invalidCard = questions.some(question =>
-        !question ||
-        typeof question.term !== 'string' ||
-        typeof question.answer !== 'string'
-    );
-
-    if (invalidCard) {
-        showError('Some flashcards are incomplete.');
-        return;
+    function goBack() {
+        window.location.href = "dashboard.html";
     }
 
-    questions = shuffle(questions);
-    currentCard = 0;
+    function showError(message) {
+        document.getElementById("materialInformation")
+            .classList.add("hidden");
 
-    document.getElementById('flashcardPanel')
-        .classList.remove('hidden');
+        document.getElementById("questionPanel")
+            .classList.add("hidden");
 
-    renderFlashcard();
-}
+        document.getElementById("flashcardPanel")
+            .classList.add("hidden");
 
+        const errorPanel = document.getElementById("errorPanel");
 
-// =====================================
-// DISPLAY FLASHCARD
-// =====================================
-
-function renderFlashcard() {
-    const card = questions[currentCard];
-
-    answerRevealed = false;
-
-    document.getElementById('flashcardSide').textContent =
-        'FRONT';
-
-    document.getElementById('flashcardText').textContent =
-        card.term;
-
-    document.getElementById('flashcardAnswerText').textContent =
-        card.answer;
-
-    document.getElementById('flashcardAnswer').style.display =
-        'none';
-
-    document.getElementById('revealButton')
-        .classList.remove('hidden');
-
-    document.getElementById('flashcardProgress').textContent =
-        'Card ' + (currentCard + 1) +
-        ' of ' + questions.length;
-
-    const percentage = Math.round(
-        ((currentCard + 1) / questions.length) * 100
-    );
-
-    document.getElementById('flashcardPercent').textContent =
-        percentage + '%';
-
-    document.getElementById('flashcardProgressFill').style.width =
-        percentage + '%';
-
-    document.getElementById('nextCardButton').textContent =
-        currentCard === questions.length - 1
-            ? 'Finish Review'
-            : 'Next Card';
-}
-
-
-// =====================================
-// REVEAL ANSWER
-// =====================================
-
-function revealAnswer() {
-    if (answerRevealed) return;
-
-    answerRevealed = true;
-
-    document.getElementById('flashcardSide').textContent =
-        'BACK';
-
-    document.getElementById('flashcardAnswer').style.display =
-        'block';
-
-    document.getElementById('revealButton')
-        .classList.add('hidden');
-}
-
-
-// =====================================
-// NEXT FLASHCARD
-// =====================================
-
-function nextCard() {
-    if (currentCard === questions.length - 1) {
-        alert('You have completed the flashcard review!');
-        window.location.href = 'dashboard.html';
-        return;
+        errorPanel.textContent = message;
+        errorPanel.classList.remove("hidden");
     }
 
-    currentCard++;
-    renderFlashcard();
-}
+    async function requestJSON(url) {
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store"
+        });
 
+        const text = await response.text();
 
-// =====================================
-// INITIALIZE PAGE
-// =====================================
+        let data;
 
-loadMaterial();
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch {
+            throw new Error("The server returned an invalid response.");
+        }
 
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                data.error ||
+                "Unable to load the requested information."
+            );
+        }
+
+        return data;
+    }
+
+    function normalizeRoleResponse(data) {
+        const account = data.student || data.user || data;
+        return String(account.role || "").toLowerCase();
+    }
+
+    function getMaterialType(data) {
+        return String(
+            data.material_type ||
+            data.type ||
+            data.materialType ||
+            ""
+        ).toLowerCase();
+    }
+
+    function getMaterialQuestions(data) {
+        if (Array.isArray(data.questions)) {
+            return data.questions;
+        }
+
+        if (Array.isArray(data.items)) {
+            return data.items;
+        }
+
+        return [];
+    }
+
+    function getQuestionText(question) {
+        return question.question ||
+            question.question_text ||
+            question.text ||
+            question.term ||
+            "";
+    }
+
+    function getQuestionOptions(question) {
+        if (Array.isArray(question.options)) {
+            return question.options;
+        }
+
+        if (Array.isArray(question.choices)) {
+            return question.choices;
+        }
+
+        return [
+            question.option_a,
+            question.option_b,
+            question.option_c,
+            question.option_d
+        ].filter(option => option !== undefined && option !== null);
+    }
+
+    function getFlashcardAnswer(question) {
+        return question.answer ??
+            question.definition ??
+            question.description ??
+            question.back ??
+            "";
+    }
+
+    async function loadMaterial() {
+        if (!materialId) {
+            showError("No material ID was provided.");
+            return;
+        }
+
+        try {
+            // STEP 1: Verify teacher account.
+
+            const userData = await requestJSON("/api/student");
+
+            const role = normalizeRoleResponse(userData);
+
+            if (role !== "teacher") {
+                if (role === "student") {
+                    window.location.href =
+                        "take-material.html?id=" +
+                        encodeURIComponent(materialId);
+                } else {
+                    window.location.href = "dashboard.html";
+                }
+
+                return;
+            }
+
+            // STEP 2: Request teacher read-only material data.
+
+            const data = await requestJSON(
+                "/api/materials/" +
+                encodeURIComponent(materialId) +
+                "/teacher-view"
+            );
+
+            material = data.material || data;
+
+            if (!material) {
+                throw new Error("Material not found.");
+            }
+
+            materialType = getMaterialType(material);
+
+            const publishedStatus = String(
+                material.status || ""
+            ).toLowerCase();
+
+            if (publishedStatus !== "published") {
+                throw new Error(
+                    "Only published materials can be viewed."
+                );
+            }
+
+            questions = getMaterialQuestions(material);
+
+            if (questions.length === 0) {
+                throw new Error(
+                    "This material has no questions or flashcards."
+                );
+            }
+
+            // STEP 3: Display material information.
+
+            document.getElementById("materialTitle").textContent =
+                material.title || material.name || "Untitled Material";
+
+            document.getElementById("materialDescription").textContent =
+                material.description || "No description available.";
+
+            document.getElementById("materialInformation")
+                .classList.remove("hidden");
+
+            // STEP 4: Determine material type.
+
+            if (
+                materialType.includes("flashcard") ||
+                materialType.includes("flash card")
+            ) {
+                document.getElementById("materialType").textContent =
+                    "Flashcard Review";
+
+                document.getElementById("flashcardPanel")
+                    .classList.remove("hidden");
+
+                currentIndex = 0;
+                renderFlashcard();
+
+            } else if (
+                materialType.includes("quiz") ||
+                materialType.includes("exam") ||
+                materialType.includes("examination")
+            ) {
+                document.getElementById("materialType").textContent =
+                    materialType.includes("exam")
+                        ? "Online Examination"
+                        : "Online Quiz";
+
+                const invalidQuestion = questions.some(question => {
+                    const options = getQuestionOptions(question);
+
+                    return (
+                        !question ||
+                        !getQuestionText(question) ||
+                        options.length === 0
+                    );
+                });
+
+                if (invalidQuestion) {
+                    throw new Error(
+                        "Some questions or choices are incomplete."
+                    );
+                }
+
+                document.getElementById("questionPanel")
+                    .classList.remove("hidden");
+
+                currentIndex = 0;
+                renderQuestion();
+
+            } else {
+                throw new Error(
+                    "This type of learning material is not supported."
+                );
+            }
+
+        } catch (error) {
+            console.error("Teacher view error:", error);
+            showError(error.message);
+        }
+    }
+
+    // QUIZ AND EXAMINATION DISPLAY
+
+    function renderQuestion() {
+        const question = questions[currentIndex];
+
+        if (!question) return;
+
+        document.getElementById("questionNumber").textContent =
+            "Question " + (currentIndex + 1);
+
+        document.getElementById("questionText").textContent =
+            getQuestionText(question);
+
+        document.getElementById("progressText").textContent =
+            "Question " + (currentIndex + 1) +
+            " of " + questions.length;
+
+        const percentage = Math.round(
+            ((currentIndex + 1) / questions.length) * 100
+        );
+
+        document.getElementById("progressPercent").textContent =
+            percentage + "%";
+
+        document.getElementById("progressFill").style.width =
+            percentage + "%";
+
+        const choicesContainer =
+            document.getElementById("choices");
+
+        choicesContainer.innerHTML = "";
+
+        const options = getQuestionOptions(question);
+
+        options.forEach((option, index) => {
+            const choice = document.createElement("div");
+            choice.className = "choice";
+
+            const letter = document.createElement("span");
+            letter.className = "choice-letter";
+
+            letter.textContent =
+                String.fromCharCode(65 + index) + ".";
+
+            const text = document.createElement("span");
+            text.className = "choice-text";
+
+            text.textContent =
+                typeof option === "object"
+                    ? option.text || option.label || option.value || ""
+                    : option;
+
+            choice.appendChild(letter);
+            choice.appendChild(text);
+
+            choicesContainer.appendChild(choice);
+        });
+
+        document.getElementById("previousButton").disabled =
+            currentIndex === 0;
+
+        document.getElementById("nextButton").textContent =
+            currentIndex === questions.length - 1
+                ? "Finish Viewing"
+                : "Next";
+    }
+
+    function previousQuestion() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            renderQuestion();
+        }
+    }
+
+    function nextQuestion() {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            renderQuestion();
+        } else {
+            goBack();
+        }
+    }
+
+    // FLASHCARD DISPLAY
+
+    function renderFlashcard() {
+        const card = questions[currentIndex];
+
+        if (!card) return;
+
+        document.getElementById("flashcardQuestion").textContent =
+            getQuestionText(card);
+
+        document.getElementById("flashcardAnswer").textContent =
+            getFlashcardAnswer(card);
+
+        const percentage = Math.round(
+            ((currentIndex + 1) / questions.length) * 100
+        );
+
+        document.getElementById("flashcardProgressText").textContent =
+            "Card " + (currentIndex + 1) +
+            " of " + questions.length;
+
+        document.getElementById("flashcardProgressPercent").textContent =
+            percentage + "%";
+
+        document.getElementById("flashcardProgressFill").style.width =
+            percentage + "%";
+
+        document.getElementById("previousFlashcardButton").disabled =
+            currentIndex === 0;
+
+        document.getElementById("nextFlashcardButton").textContent =
+            currentIndex === questions.length - 1
+                ? "Finish Viewing"
+                : "Next";
+    }
+
+    function previousFlashcard() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            renderFlashcard();
+        }
+    }
+
+    function nextFlashcard() {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            renderFlashcard();
+        } else {
+            goBack();
+        }
+    }
+
+    // INITIALIZE PAGE
+
+    loadMaterial();
 </script>
+
 </body>
 </html>

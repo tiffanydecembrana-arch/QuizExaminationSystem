@@ -38,8 +38,6 @@ app.use(session({
     }
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
-
 // ==========================================
 // PASSWORD FUNCTIONS
 // ==========================================
@@ -47,14 +45,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 function createPasswordHash(password) {
     const salt = crypto.randomBytes(16).toString('hex');
     const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-
     return salt + ':' + hash;
 }
 
 function verifyPassword(password, savedPassword) {
     try {
         const [salt, savedHash] = savedPassword.split(':');
-
         const savedBuffer = Buffer.from(savedHash, 'hex');
         const enteredBuffer = crypto.scryptSync(password, salt, 64);
 
@@ -112,6 +108,155 @@ function requireTeacher(req, res, next) {
     }
 
     next();
+}
+
+// ==========================================
+// ROLE-BASED PAGE PROTECTION
+// MUST BE BEFORE EXPRESS STATIC
+// ==========================================
+
+app.use(async (req, res, next) => {
+    try {
+        const user = req.session && req.session.student;
+
+        // Teacher View page: teacher accounts only.
+        // Published Quiz, Exam, and Flashcards are allowed.
+        if (req.path === '/view-material.html') {
+            if (!user) {
+                return res.redirect('/login.html');
+            }
+
+            if (user.role !== 'teacher') {
+                return res.redirect('/dashboard.html');
+            }
+
+            const materialId = Number(
+                req.query.id || req.query.materialId
+            );
+
+            if (!Number.isInteger(materialId) || materialId < 1) {
+                return res.redirect('/dashboard.html');
+            }
+
+            const db = getDatabase();
+
+            const result = await db.query(
+                `SELECT id
+                 FROM created_materials
+                 WHERE id = $1
+                 AND status = 'published'
+                 AND material_type IN ('quiz', 'exam', 'flashcard')
+                 LIMIT 1`,
+                [materialId]
+            );
+
+            if (result.rows.length === 0) {
+                return res.redirect('/dashboard.html');
+            }
+
+            return next();
+        }
+
+        if (!user) {
+            return next();
+        }
+
+        // Teachers cannot access student assessment pages.
+        if (
+            user.role === 'teacher' &&
+            (
+                req.path === '/quiz.html' ||
+                req.path === '/exam.html'
+            )
+        ) {
+            return res.redirect(
+                '/dashboard.html?access=student-only'
+            );
+        }
+
+        // Teachers cannot use the student taking page.
+        // Published materials are redirected to Teacher View.
+        if (
+            user.role === 'teacher' &&
+            req.path === '/take-material.html'
+        ) {
+            const materialId = Number(
+                req.query.id || req.query.materialId
+            );
+
+            if (!Number.isInteger(materialId) || materialId < 1) {
+                return res.redirect(
+                    '/dashboard.html?access=student-only'
+                );
+            }
+
+            const db = getDatabase();
+
+            const result = await db.query(
+                `SELECT id
+                 FROM created_materials
+                 WHERE id = $1
+                 AND status = 'published'
+                 AND material_type IN ('quiz', 'exam', 'flashcard')
+                 LIMIT 1`,
+                [materialId]
+            );
+
+            if (result.rows.length > 0) {
+                return res.redirect(
+                    `/view-material.html?id=${materialId}`
+                );
+            }
+
+            return res.redirect('/dashboard.html');
+        }
+
+        // Students cannot access the Teacher View page.
+        if (
+            user.role === 'student' &&
+            req.path === '/view-material.html'
+        ) {
+            return res.redirect('/dashboard.html');
+        }
+
+        next();
+
+    } catch (error) {
+        console.error('Page access check error:', error);
+
+        return res.redirect('/dashboard.html');
+    }
+});
+
+// Serve public files AFTER page protection.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ==========================================
+// COMPLETION HELPERS
+// ==========================================
+
+async function isAssessmentDone(studentId, type, assessmentId) {
+    const db = getDatabase();
+
+    const result = await db.query(
+        `SELECT id
+         FROM assessment_completions
+         WHERE student_id = $1
+         AND assessment_type = $2
+         AND assessment_id = $3
+         LIMIT 1`,
+        [studentId, type, String(assessmentId)]
+    );
+
+    return result.rows.length > 0;
+}
+
+function alreadyCompletedResponse(res) {
+    return res.status(409).json({
+        code: 'ALREADY_COMPLETED',
+        message: 'DONE! You have already completed this assessment. Retaking is not allowed.',
+        completed: true
+    });
 }
 
 // ==========================================
@@ -244,6 +389,8 @@ function validateMaterial(data) {
     };
 }
 
+// Hide correct answers for assessments.
+// Flashcard answers remain visible for review.
 function hideCorrectAnswers(questions, materialType) {
     if (materialType === 'flashcard') {
         return questions;
@@ -256,7 +403,7 @@ function hideCorrectAnswers(questions, materialType) {
 }
 
 // ==========================================
-// REGISTER - STUDENT AND TEACHER
+// REGISTER
 // ==========================================
 
 app.post('/api/register', async (req, res) => {
@@ -362,7 +509,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // ==========================================
-// LOGIN - STUDENT AND TEACHER
+// LOGIN
 // ==========================================
 
 app.post('/api/login', async (req, res) => {
@@ -401,7 +548,6 @@ app.post('/api/login', async (req, res) => {
 
     try {
         const db = getDatabase();
-
         let result;
 
         if (cleanRole === 'teacher') {
@@ -482,6 +628,60 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/student', requireLogin, (req, res) => {
     res.json(req.session.student);
+});
+
+// ==========================================
+// ASSESSMENT STATUS
+// STUDENT ONLY
+// ==========================================
+
+app.get('/api/assessment-status', requireStudent, async (req, res) => {
+    try {
+        const db = getDatabase();
+        const studentId = req.session.student.id;
+
+        const result = await db.query(
+            `SELECT assessment_type, assessment_id, completed_at
+             FROM assessment_completions
+             WHERE student_id = $1`,
+            [studentId]
+        );
+
+        const completed = {
+            quiz: false,
+            exam: false,
+            materials: []
+        };
+
+        for (const row of result.rows) {
+            if (
+                row.assessment_type === 'quiz' &&
+                row.assessment_id === 'builtin'
+            ) {
+                completed.quiz = true;
+            }
+
+            if (
+                row.assessment_type === 'exam' &&
+                row.assessment_id === 'builtin'
+            ) {
+                completed.exam = true;
+            }
+
+            if (row.assessment_type === 'material') {
+                completed.materials.push(Number(row.assessment_id));
+            }
+        }
+
+        res.json({ completed });
+
+    } catch (error) {
+        console.error('Assessment status error:', error);
+
+        res.status(500).json({
+            message: 'Unable to load assessment status.'
+        });
+    }
 });
 
 // ==========================================
@@ -651,7 +851,7 @@ app.get('/api/settings/security', requireLogin, (req, res) => {
 
 // ==========================================
 // SAVE ORIGINAL QUIZ RESULT
-// STUDENT ONLY
+// ONE ATTEMPT ONLY
 // ==========================================
 
 app.post('/api/quiz-results', requireStudent, async (req, res) => {
@@ -669,11 +869,33 @@ app.post('/api/quiz-results', requireStudent, async (req, res) => {
         });
     }
 
+    const db = getDatabase();
+    const client = await db.connect();
+
     try {
-        const db = getDatabase();
+        await client.query('BEGIN');
+
+        const completion = await client.query(
+            `INSERT INTO assessment_completions
+                (student_id, assessment_type, assessment_id)
+             VALUES ($1, 'quiz', 'builtin')
+             ON CONFLICT (
+                student_id,
+                assessment_type,
+                assessment_id
+             ) DO NOTHING
+             RETURNING id`,
+            [req.session.student.id]
+        );
+
+        if (completion.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return alreadyCompletedResponse(res);
+        }
+
         const percentage = Number(((score / total) * 100).toFixed(2));
 
-        await db.query(
+        await client.query(
             `INSERT INTO quiz_results
             (student_id, score, total, percentage, date)
             VALUES ($1, $2, $3, $4, $5)`,
@@ -686,22 +908,30 @@ app.post('/api/quiz-results', requireStudent, async (req, res) => {
             ]
         );
 
+        await client.query('COMMIT');
+
         res.status(201).json({
-            message: 'Quiz result saved successfully!'
+            message: 'Quiz result saved successfully!',
+            completed: true,
+            status: 'DONE'
         });
 
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Quiz result error:', error);
 
         res.status(500).json({
             message: 'Unable to save quiz result.'
         });
+
+    } finally {
+        client.release();
     }
 });
 
 // ==========================================
 // SAVE ORIGINAL EXAM RESULT
-// STUDENT ONLY
+// ONE ATTEMPT ONLY
 // ==========================================
 
 app.post('/api/exam-results', requireStudent, async (req, res) => {
@@ -719,11 +949,33 @@ app.post('/api/exam-results', requireStudent, async (req, res) => {
         });
     }
 
+    const db = getDatabase();
+    const client = await db.connect();
+
     try {
-        const db = getDatabase();
+        await client.query('BEGIN');
+
+        const completion = await client.query(
+            `INSERT INTO assessment_completions
+                (student_id, assessment_type, assessment_id)
+             VALUES ($1, 'exam', 'builtin')
+             ON CONFLICT (
+                student_id,
+                assessment_type,
+                assessment_id
+             ) DO NOTHING
+             RETURNING id`,
+            [req.session.student.id]
+        );
+
+        if (completion.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return alreadyCompletedResponse(res);
+        }
+
         const percentage = Number(((score / total) * 100).toFixed(2));
 
-        await db.query(
+        await client.query(
             `INSERT INTO exam_results
             (student_id, score, total, percentage, date)
             VALUES ($1, $2, $3, $4, $5)`,
@@ -736,16 +988,24 @@ app.post('/api/exam-results', requireStudent, async (req, res) => {
             ]
         );
 
+        await client.query('COMMIT');
+
         res.status(201).json({
-            message: 'Examination result saved successfully!'
+            message: 'Examination result saved successfully!',
+            completed: true,
+            status: 'DONE'
         });
 
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Exam result error:', error);
 
         res.status(500).json({
             message: 'Unable to save examination result.'
         });
+
+    } finally {
+        client.release();
     }
 });
 
@@ -832,47 +1092,25 @@ app.get('/api/materials/mine', requireLogin, async (req, res) => {
 
 // ==========================================
 // GET ALL PUBLISHED MATERIALS
-// EACH MATERIAL REMAINS SEPARATE
+// LOGGED-IN USERS
 // ==========================================
 
 app.get('/api/materials', requireLogin, async (req, res) => {
-    const type = req.query.type;
-
-    if (type && !['quiz', 'exam', 'flashcard'].includes(String(type))) {
-        return res.status(400).json({
-            message: 'Invalid material type.'
-        });
-    }
-
     try {
         const db = getDatabase();
 
-        let query = `
-            SELECT
-                cm.id,
-                cm.title,
-                cm.description,
-                cm.material_type,
-                cm.status,
-                cm.created_at,
-                cm.updated_at,
-                s.full_name AS creator_name,
-                jsonb_array_length(cm.questions) AS item_count
-            FROM created_materials cm
-            JOIN students s ON s.id = cm.creator_id
-            WHERE cm.status = 'published'
-        `;
-
-        const values = [];
-
-        if (type) {
-            values.push(type);
-            query += ` AND cm.material_type = $${values.length}`;
-        }
-
-        query += ' ORDER BY cm.created_at DESC';
-
-        const result = await db.query(query, values);
+        const result = await db.query(
+            `SELECT
+                id,
+                title,
+                description,
+                material_type,
+                status,
+                created_at
+             FROM created_materials
+             WHERE status = 'published'
+             ORDER BY created_at DESC, id DESC`
+        );
 
         res.json({
             materials: result.rows
@@ -888,10 +1126,11 @@ app.get('/api/materials', requireLogin, async (req, res) => {
 });
 
 // ==========================================
-// GET ONE MATERIAL
+// GET ONE PUBLISHED MATERIAL
+// STUDENT ONLY
 // ==========================================
 
-app.get('/api/materials/:id', requireLogin, async (req, res) => {
+app.get('/api/materials/:id', requireStudent, async (req, res) => {
     const materialId = Number(req.params.id);
 
     if (!Number.isInteger(materialId) || materialId < 1) {
@@ -904,44 +1143,115 @@ app.get('/api/materials/:id', requireLogin, async (req, res) => {
         const db = getDatabase();
 
         const result = await db.query(
-            `SELECT cm.*, s.full_name AS creator_name
-             FROM created_materials cm
-             JOIN students s ON s.id = cm.creator_id
-             WHERE cm.id = $1
-             AND (cm.status = 'published' OR cm.creator_id = $2)`,
-            [materialId, req.session.student.id]
+            `SELECT
+                id,
+                title,
+                description,
+                material_type,
+                status,
+                questions,
+                created_at
+             FROM created_materials
+             WHERE id = $1
+             AND status = 'published'
+             LIMIT 1`,
+            [materialId]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({
-                message: 'Material not found or not available.'
+                message: 'Published material not found.'
             });
         }
 
         const material = result.rows[0];
 
-        const isOwner =
-            Number(material.creator_id) === Number(req.session.student.id);
+        // Correct answers are hidden for Quiz and Exam.
+        // Flashcard answers remain available for student review.
+        material.questions = hideCorrectAnswers(
+            material.questions,
+            material.material_type
+        );
 
-        if (!isOwner) {
+        return res.json({
+            material
+        });
+
+    } catch (error) {
+        console.error('Get single material error:', error);
+
+        return res.status(500).json({
+            message: 'Unable to load this material.'
+        });
+    }
+});
+
+// ==========================================
+// TEACHER: VIEW PUBLISHED MATERIAL
+// READ ONLY
+// QUIZ, EXAM, AND FLASHCARDS
+// ==========================================
+
+app.get(
+    '/api/materials/:id/teacher-view',
+    requireTeacher,
+    async (req, res) => {
+        const materialId = Number(req.params.id);
+
+        if (!Number.isInteger(materialId) || materialId < 1) {
+            return res.status(400).json({
+                message: 'Invalid material ID.'
+            });
+        }
+
+        try {
+            const db = getDatabase();
+
+            const result = await db.query(
+                `SELECT
+                    id,
+                    title,
+                    description,
+                    material_type,
+                    status,
+                    questions,
+                    created_at
+                 FROM created_materials
+                 WHERE id = $1
+                 AND status = 'published'
+                 AND material_type IN ('quiz', 'exam', 'flashcard')
+                 LIMIT 1`,
+                [materialId]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    message: 'Published material not found.'
+                });
+            }
+
+            const material = result.rows[0];
+
+            // Quiz and Exam: hide correct answers.
+            // Flashcards: keep answers visible for viewing.
             material.questions = hideCorrectAnswers(
                 material.questions,
                 material.material_type
             );
+
+            return res.json({
+                material
+            });
+
+        } catch (error) {
+            console.error('Teacher view material error:', error);
+
+            return res.status(500).json({
+                message: 'Unable to load this material.'
+            });
         }
-
-        delete material.creator_id;
-
-        res.json({ material });
-
-    } catch (error) {
-        console.error('Get material error:', error);
-
-        res.status(500).json({
-            message: 'Unable to load material.'
-        });
     }
-});
+);
 
 // ==========================================
 // UPDATE OWN MATERIAL ONLY
@@ -1053,8 +1363,9 @@ app.delete('/api/materials/:id', requireLogin, async (req, res) => {
 });
 
 // ==========================================
-// SUBMIT AND AUTO-GRADE CUSTOM QUIZ / EXAM
-// STUDENT ONLY
+// SUBMIT CUSTOM QUIZ / EXAM
+// STUDENT ONLY - ONE ATTEMPT ONLY
+// EXPECTS NUMERIC ANSWER INDEXES (0 TO 3)
 // ==========================================
 
 app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
@@ -1073,17 +1384,23 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
         });
     }
 
-    try {
-        const db = getDatabase();
+    const db = getDatabase();
+    const client = await db.connect();
 
-        const materialResult = await db.query(
+    try {
+        await client.query('BEGIN');
+
+        const materialResult = await client.query(
             `SELECT id, title, material_type, questions
              FROM created_materials
-             WHERE id = $1 AND status = 'published'`,
+             WHERE id = $1 AND status = 'published'
+             FOR UPDATE`,
             [materialId]
         );
 
         if (materialResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+
             return res.status(404).json({
                 message: 'Published material not found.'
             });
@@ -1092,6 +1409,8 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
         const material = materialResult.rows[0];
 
         if (!['quiz', 'exam'].includes(material.material_type)) {
+            await client.query('ROLLBACK');
+
             return res.status(400).json({
                 message: 'Flashcard materials do not have graded submissions.'
             });
@@ -1099,28 +1418,67 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
 
         const questions = material.questions;
 
-        if (answers.length !== questions.length || questions.length === 0) {
+        if (
+            !Array.isArray(questions) ||
+            answers.length !== questions.length ||
+            questions.length === 0
+        ) {
+            await client.query('ROLLBACK');
+
             return res.status(400).json({
                 message: 'Please answer all questions before submitting.'
             });
         }
 
-        let score = 0;
+        // Validate every answer before recording completion.
+        const selectedAnswers = [];
 
         for (let i = 0; i < questions.length; i++) {
             const selectedAnswer = Number(answers[i]);
 
             if (
+                answers[i] === null ||
+                answers[i] === undefined ||
+                answers[i] === '' ||
                 !Number.isInteger(selectedAnswer) ||
                 selectedAnswer < 0 ||
                 selectedAnswer > 3
             ) {
+                await client.query('ROLLBACK');
+
                 return res.status(400).json({
-                    message: `Invalid answer for question ${i + 1}.`
+                    message: `Invalid or unanswered question ${i + 1}.`
                 });
             }
 
-            if (selectedAnswer === questions[i].correctAnswer) {
+            selectedAnswers.push(selectedAnswer);
+        }
+
+        const completion = await client.query(
+            `INSERT INTO assessment_completions
+                (student_id, assessment_type, assessment_id)
+             VALUES ($1, 'material', $2)
+             ON CONFLICT (
+                student_id,
+                assessment_type,
+                assessment_id
+             ) DO NOTHING
+             RETURNING id`,
+            [req.session.student.id, String(materialId)]
+        );
+
+        if (completion.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return alreadyCompletedResponse(res);
+        }
+
+        let score = 0;
+
+        for (let i = 0; i < questions.length; i++) {
+            if (
+                selectedAnswers[i] ===
+                Number(questions[i].correctAnswer)
+            ) {
                 score++;
             }
         }
@@ -1128,7 +1486,7 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
         const total = questions.length;
         const percentage = Number(((score / total) * 100).toFixed(2));
 
-        await db.query(
+        await client.query(
             `INSERT INTO material_results
             (material_id, student_id, score, total, percentage)
             VALUES ($1, $2, $3, $4, $5)`,
@@ -1141,8 +1499,12 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
             ]
         );
 
-        res.status(201).json({
+        await client.query('COMMIT');
+
+        return res.status(201).json({
             message: 'Your answers have been graded successfully!',
+            completed: true,
+            status: 'DONE',
             result: {
                 materialId,
                 title: material.title,
@@ -1154,11 +1516,15 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
         });
 
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Material submission error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: 'Unable to submit material.'
         });
+
+    } finally {
+        client.release();
     }
 });
 
@@ -1240,7 +1606,6 @@ app.get('/api/results', requireStudent, async (req, res) => {
 
 // ==========================================
 // TEACHER: VIEW ALL STUDENT RESULTS
-// TEACHER ACCOUNTS ARE EXCLUDED
 // ==========================================
 
 app.get('/api/teacher/results', requireTeacher, async (req, res) => {
@@ -1315,7 +1680,67 @@ app.get('/api/teacher/results', requireTeacher, async (req, res) => {
 });
 
 // ==========================================
+// TEACHER: DELETE ALL STUDENT RESULT HISTORY
+// PRESERVE ACCOUNTS, MATERIALS AND DONE RECORDS
+// ==========================================
+
+app.delete('/api/teacher/results', requireTeacher, async (req, res) => {
+    const db = getDatabase();
+    const client = await db.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const quiz = await client.query(
+            `DELETE FROM quiz_results
+             WHERE student_id IN (
+                SELECT id FROM students WHERE role = 'student'
+             )`
+        );
+
+        const exam = await client.query(
+            `DELETE FROM exam_results
+             WHERE student_id IN (
+                SELECT id FROM students WHERE role = 'student'
+             )`
+        );
+
+        const material = await client.query(
+            `DELETE FROM material_results
+             WHERE student_id IN (
+                SELECT id FROM students WHERE role = 'student'
+             )`
+        );
+
+        await client.query('COMMIT');
+
+        res.json({
+            success: true,
+            message: 'All student result records have been deleted. Student accounts, created materials, and DONE records are preserved.',
+            deleted: {
+                quiz: quiz.rowCount,
+                exam: exam.rowCount,
+                material: material.rowCount
+            }
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+
+        console.error('Delete all student results error:', error);
+
+        res.status(500).json({
+            message: 'Unable to delete student result records.'
+        });
+
+    } finally {
+        client.release();
+    }
+});
+
+// ==========================================
 // DELETE STUDENT'S OWN HISTORY ONLY
+// DOES NOT DELETE COMPLETION RECORDS
 // ==========================================
 
 app.delete('/api/results', requireStudent, async (req, res) => {
@@ -1339,7 +1764,7 @@ app.delete('/api/results', requireStudent, async (req, res) => {
         );
 
         res.json({
-            message: 'Your Quiz, Examination, and custom material history has been deleted.'
+            message: 'Your result history has been deleted. Completed assessments will remain marked DONE.'
         });
 
     } catch (error) {
