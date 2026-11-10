@@ -715,7 +715,7 @@
 
     // =====================================
     // LOAD AVAILABLE MATERIALS
-    // UPDATED: ONE REQUEST + DUPLICATE CHECK
+    // WITH PUBLISHER NAME
     // =====================================
 
     async function loadAvailableMaterials() {
@@ -732,7 +732,6 @@
             '<div class="empty-message">Loading materials...</div>';
 
         try {
-            // Fetch all published materials only once.
             const response = await fetch('/api/materials', {
                 cache: 'no-store'
             });
@@ -749,7 +748,7 @@
                     ? data.materials
                     : [];
 
-            // Remove duplicate records with the same database ID.
+            // Remove duplicate records using database ID.
             const uniqueMaterials = new Map();
 
             materials.forEach(material => {
@@ -757,15 +756,12 @@
                     return;
                 }
 
-                uniqueMaterials.set(
-                    String(material.id),
-                    material
-                );
+                uniqueMaterials.set(String(material.id), material);
             });
 
             materials = Array.from(uniqueMaterials.values());
 
-            // Show only the selected material type.
+            // Apply selected material filter.
             if (filter !== 'all') {
                 materials = materials.filter(material =>
                     String(material.material_type || '').toLowerCase() === filter
@@ -819,11 +815,14 @@
                 description.textContent =
                     material.description || 'No description provided.';
 
-                // Creator name.
+                // Publisher name.
                 const creator = document.createElement('p');
+                const publisherName =
+                    String(material.creator_name || '').trim();
+
                 creator.textContent =
-                    'Created by: ' +
-                    (material.creator_name || 'Unknown');
+                    'Published by: ' +
+                    (publisherName || 'Publisher name unavailable');
 
                 // Number of questions or flashcards.
                 const count = document.createElement('p');

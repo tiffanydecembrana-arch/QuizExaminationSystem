@@ -119,8 +119,6 @@ app.use(async (req, res, next) => {
     try {
         const user = req.session && req.session.student;
 
-        // Teacher View page: teacher accounts only.
-        // Published Quiz, Exam, and Flashcards are allowed.
         if (req.path === '/view-material.html') {
             if (!user) {
                 return res.redirect('/login.html');
@@ -161,7 +159,6 @@ app.use(async (req, res, next) => {
             return next();
         }
 
-        // Teachers cannot access student assessment pages.
         if (
             user.role === 'teacher' &&
             (
@@ -174,8 +171,6 @@ app.use(async (req, res, next) => {
             );
         }
 
-        // Teachers cannot use the student taking page.
-        // Published materials are redirected to Teacher View.
         if (
             user.role === 'teacher' &&
             req.path === '/take-material.html'
@@ -211,7 +206,6 @@ app.use(async (req, res, next) => {
             return res.redirect('/dashboard.html');
         }
 
-        // Students cannot access the Teacher View page.
         if (
             user.role === 'student' &&
             req.path === '/view-material.html'
@@ -223,7 +217,6 @@ app.use(async (req, res, next) => {
 
     } catch (error) {
         console.error('Page access check error:', error);
-
         return res.redirect('/dashboard.html');
     }
 });
@@ -389,8 +382,6 @@ function validateMaterial(data) {
     };
 }
 
-// Hide correct answers for assessments.
-// Flashcard answers remain visible for review.
 function hideCorrectAnswers(questions, materialType) {
     if (materialType === 'flashcard') {
         return questions;
@@ -1092,7 +1083,7 @@ app.get('/api/materials/mine', requireLogin, async (req, res) => {
 
 // ==========================================
 // GET ALL PUBLISHED MATERIALS
-// LOGGED-IN USERS
+// INCLUDE PUBLISHER NAME AND ITEM COUNT
 // ==========================================
 
 app.get('/api/materials', requireLogin, async (req, res) => {
@@ -1101,15 +1092,19 @@ app.get('/api/materials', requireLogin, async (req, res) => {
 
         const result = await db.query(
             `SELECT
-                id,
-                title,
-                description,
-                material_type,
-                status,
-                created_at
-             FROM created_materials
-             WHERE status = 'published'
-             ORDER BY created_at DESC, id DESC`
+                cm.id,
+                cm.title,
+                cm.description,
+                cm.material_type,
+                cm.status,
+                cm.created_at,
+                s.full_name AS creator_name,
+                COALESCE(jsonb_array_length(cm.questions), 0) AS item_count
+             FROM created_materials cm
+             LEFT JOIN students s
+                ON s.id = cm.creator_id
+             WHERE cm.status = 'published'
+             ORDER BY cm.created_at DESC, cm.id DESC`
         );
 
         res.json({
@@ -1166,8 +1161,6 @@ app.get('/api/materials/:id', requireStudent, async (req, res) => {
 
         const material = result.rows[0];
 
-        // Correct answers are hidden for Quiz and Exam.
-        // Flashcard answers remain available for student review.
         material.questions = hideCorrectAnswers(
             material.questions,
             material.material_type
@@ -1189,7 +1182,6 @@ app.get('/api/materials/:id', requireStudent, async (req, res) => {
 // ==========================================
 // TEACHER: VIEW PUBLISHED MATERIAL
 // READ ONLY
-// QUIZ, EXAM, AND FLASHCARDS
 // ==========================================
 
 app.get(
@@ -1232,8 +1224,6 @@ app.get(
 
             const material = result.rows[0];
 
-            // Quiz and Exam: hide correct answers.
-            // Flashcards: keep answers visible for viewing.
             material.questions = hideCorrectAnswers(
                 material.questions,
                 material.material_type
@@ -1365,7 +1355,6 @@ app.delete('/api/materials/:id', requireLogin, async (req, res) => {
 // ==========================================
 // SUBMIT CUSTOM QUIZ / EXAM
 // STUDENT ONLY - ONE ATTEMPT ONLY
-// EXPECTS NUMERIC ANSWER INDEXES (0 TO 3)
 // ==========================================
 
 app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
@@ -1430,7 +1419,6 @@ app.post('/api/materials/:id/submit', requireStudent, async (req, res) => {
             });
         }
 
-        // Validate every answer before recording completion.
         const selectedAnswers = [];
 
         for (let i = 0; i < questions.length; i++) {
@@ -1681,7 +1669,6 @@ app.get('/api/teacher/results', requireTeacher, async (req, res) => {
 
 // ==========================================
 // TEACHER: DELETE ALL STUDENT RESULT HISTORY
-// PRESERVE ACCOUNTS, MATERIALS AND DONE RECORDS
 // ==========================================
 
 app.delete('/api/teacher/results', requireTeacher, async (req, res) => {
@@ -1740,7 +1727,6 @@ app.delete('/api/teacher/results', requireTeacher, async (req, res) => {
 
 // ==========================================
 // DELETE STUDENT'S OWN HISTORY ONLY
-// DOES NOT DELETE COMPLETION RECORDS
 // ==========================================
 
 app.delete('/api/results', requireStudent, async (req, res) => {
